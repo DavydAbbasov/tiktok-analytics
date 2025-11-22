@@ -1,0 +1,23 @@
+# Server configuration
+listen_addr: ":8080"
+util_addr: ":8081"
+pprof_addr: ":6060"
+enable_pprof: false
+
+# Server timeouts (in seconds)
+server_opts:
+  read_timeout: 10
+  write_timeout: 10
+  idle_timeout: 60
+
+# Database configuration
+sql_database:
+  server:
+  database:
+  username:
+  password:
+  port: 5432
+  max_idle_cons: 5
+  max_open_cons: 10
+  conn_max_lifetime: 5 # minutes
+  query_timeout: 2 # seconds

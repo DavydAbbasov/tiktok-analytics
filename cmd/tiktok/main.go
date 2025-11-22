@@ -1,11 +1,10 @@
-package api
+package main
 
 import (
 	"context"
 	"log"
 	"os/signal"
 	"syscall"
-	"ttanalytic/internal/app"
 )
 
 func main() {
@@ -16,7 +15,7 @@ func main() {
 	)
 	defer cancel()
 
-	app := app.NewApplication()
+	app := application.NewApplication()
 
 	if err := app.Start(ctx); err != nil {
 		log.Fatalln("can't start application:", err)

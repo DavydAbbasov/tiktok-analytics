@@ -40,6 +40,8 @@ require (
 	github.com/swaggo/http-swagger v1.3.4 // indirect
 	github.com/swaggo/swag v1.16.6 // indirect
 	github.com/urfave/cli/v2 v2.3.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
