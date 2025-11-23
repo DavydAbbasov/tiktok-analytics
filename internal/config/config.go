@@ -12,7 +12,6 @@ type Config struct {
 	DB       DBConfig       `yaml:"db"`
 	Provider ProviderConfig `yaml:"provider"`
 	Earnings EarningsConfig `yaml:"earnings"`
-	Cron     CronConfig     `yaml:"cron"`
 }
 type HTTPConfig struct {
 	ListenAddr string `yaml:"listen_addr" env:"HTTP_LISTEN_ADDR" env-default:":8080"`
@@ -47,9 +46,6 @@ type EarningsConfig struct {
 	Per  int64   `yaml:"per"  env:"EARNINGS_PER"  env-default:"1000"` // за 1000 просмотров
 }
 
-type CronConfig struct {
-	UpdateSchedule string `yaml:"update_schedule" env:"UPDATE_SCHEDULE" env-default:"0 * * * *"`
-}
 
 func ParseConfig() (*Config, error) {
 	var cfg Config
