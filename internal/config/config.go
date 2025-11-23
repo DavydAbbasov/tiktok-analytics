@@ -9,7 +9,7 @@ import (
 type Config struct {
 	HTTP     HTTPConfig     `yaml:"http"`
 	Server   ServerOpts     `yaml:"server_opts"`
-	DB       DBConfig       `yaml:"db"`
+	DB       DBConfig       `yaml:"sql_database"`
 	Provider ProviderConfig `yaml:"provider"`
 	Earnings EarningsConfig `yaml:"earnings"`
 }
@@ -24,10 +24,10 @@ type ServerOpts struct {
 }
 
 type DBConfig struct {
-	Host               string `yaml:"host"      env:"DB_HOST"      env-default:"localhost"`
+	Host               string `yaml:"server"      env:"DB_HOST"      env-default:"localhost"`
 	Port               int    `yaml:"port"      env:"DB_PORT"      env-default:"5432"`
-	Name               string `yaml:"name"      env:"DB_NAME"      env-required:"true"`
-	User               string `yaml:"user"      env:"DB_USER"      env-default:"postgres"`
+	Name               string `yaml:"database"      env:"DB_NAME"      env-required:"true"`
+	User               string `yaml:"username"      env:"DB_USER"      env-default:"postgres"`
 	Password           string `yaml:"password"  env:"DB_PASSWORD"  env-default:"postgres"`
 	MaxIdleConns       int    `yaml:"max_idle_conns"  env:"DB_MAX_IDLE_CONNS"  env-default:"5"`
 	MaxOpenConns       int    `yaml:"max_open_conns"  env:"DB_MAX_OPEN_CONNS"  env-default:"10"`
@@ -36,16 +36,15 @@ type DBConfig struct {
 }
 
 type ProviderConfig struct {
-	Type  string `yaml:"type"  env:"PROVIDER_TYPE"  env-default:"ensemble"` // ensemble | mock | tiktok
-	URL   string `yaml:"url"   env:"PROVIDER_URL"   env-default:"https://ensembledata.com/apis/tiktok"`
-	Token string `yaml:"token" env:"PROVIDER_TOKEN" env-required:"true"`
+	Type  string `yaml:"type"  env:"PROVIDER_TYPE"  env-default:"ensemble"`
+	URL   string `yaml:"url"   env:"PROVIDER_URL"   env-default:"https://ensembledata.com/apis"`
+	Token string `yaml:"token" 	   env:"PROVIDER_TOKEN" env-required:"true"`
 }
 
 type EarningsConfig struct {
-	Rate float64 `yaml:"rate" env:"EARNINGS_RATE" env-default:"0.10"` // $0.10
-	Per  int64   `yaml:"per"  env:"EARNINGS_PER"  env-default:"1000"` // за 1000 просмотров
+	Rate float64 `yaml:"rate" env:"EARNINGS_RATE" env-default:"0.10"`
+	Per  int64   `yaml:"per"  env:"EARNINGS_PER"  env-default:"1000"`
 }
-
 
 func ParseConfig() (*Config, error) {
 	var cfg Config
