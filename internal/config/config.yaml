@@ -1,5 +1,5 @@
-http:
-  listen_addr: ":8080"
+listen_addr: ":8080"
+
 server_opts:
   read_timeout: 10
   write_timeout: 10
