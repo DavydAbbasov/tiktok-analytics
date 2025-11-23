@@ -5,6 +5,7 @@ import (
 	"log"
 	"os/signal"
 	"syscall"
+	"ttanalytic/internal/application"
 )
 
 func main() {
@@ -19,10 +20,6 @@ func main() {
 
 	if err := app.Start(ctx); err != nil {
 		log.Fatalln("can't start application:", err)
-	}
-
-	if err := app.Wait(ctx, cancel); err != nil {
-		log.Fatalln("All systems closed with errors. LastError:", err)
 	}
 
 	log.Println("All systems closed without errors")

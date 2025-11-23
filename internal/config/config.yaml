@@ -1,23 +1,36 @@
-# Server configuration
-listen_addr: ":8080"
-util_addr: ":8081"
-pprof_addr: ":6060"
-enable_pprof: false
+# HTTP server configuration
+http:
+  listen_addr: ":8080"
 
-# Server timeouts (in seconds)
+# HTTP server timeouts (seconds)
 server_opts:
   read_timeout: 10
   write_timeout: 10
   idle_timeout: 60
 
 # Database configuration
-sql_database:
-  server:
-  database:
-  username:
-  password:
+db:
+  host: "localhost"
   port: 5432
-  max_idle_cons: 5
-  max_open_cons: 10
-  conn_max_lifetime: 5 # minutes
-  query_timeout: 2 # seconds
+  name: "tiktok_analytics"
+  user: "postgres"
+  password: "postgres"
+  max_idle_conns: 5
+  max_open_conns: 10
+  conn_max_lifetime: 5   # minutes
+  query_timeout: 2       # seconds
+
+# Provider configuration (Ensemble / Mock / TikTok)
+provider:
+  type: "ensemble"   # ensemble | mock | tiktok
+  url: "https://ensembledata.com/apis/tiktok"
+  token: "CHANGE_ME"
+
+# Earnings calculator
+earnings:
+  rate: 0.10         # dollars
+  per: 1000          # views
+
+# Cron schedule for hourly updates
+cron:
+  update_schedule: "0 * * * *"   # every houer 
