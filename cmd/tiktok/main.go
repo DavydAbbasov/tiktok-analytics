@@ -5,12 +5,11 @@ import (
 	"log"
 	"os/signal"
 	"syscall"
-	"ttanalytic/internal/application"
 	_ "ttanalytic/internal/api/docs"
+	"ttanalytic/internal/application"
 )
 
 func main() {
-
 	ctx, cancel := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,

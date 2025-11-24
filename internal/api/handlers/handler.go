@@ -29,7 +29,7 @@ func NewHandler(service Service, logger Logger) *Handler {
 	}
 }
 
-// TrackVideo godoc
+// TrackVideo handles POST
 // @Summary      Track TikTok video by URL or ID
 // @Description  Validates TikTok video, stores/updates it in DB and returns current views and earnings.
 // @Tags         videos

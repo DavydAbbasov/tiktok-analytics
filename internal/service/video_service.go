@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"time"
 	"ttanalytic/internal/models"
 )
 
@@ -27,22 +29,27 @@ func NewService(repo Repository, logger Logger) *Service {
 	}
 }
 func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) (models.TrackVideoResponse, error) {
-	// 1. Нормализуем вход (URL / TikTokID)
+	start := time.Now()
+	s.logger.Infof("Service: TrackVideo start at:%v", start)
+
+	//validate
 	tikTokID := req.TikTokID
 	if tikTokID == "" {
-		// потом сюда добавим парсинг из URL
-		tikTokID = "parsed-from-url"
+		return models.TrackVideoResponse{},
+			errors.New("tikTokID is empty and URL parsing is not implemented yet")
 	}
 
-	// 2. Ищем видео в БД
 	video, err := s.repo.FindVideoByTikTokID(ctx, tikTokID)
 	if err != nil {
-		// тут будет разбор ошибок: not found / db error
-		// псевдо:
-		// if errors.Is(err, repository.ErrNotFound) { ... }
+		if errors.Is(err, models.ErrNotFound) {
+			video = nil
+		} else {
+			s.logger.Errorf("TrackVideo: FindVideoByTikTokID(%s) error: %v", tikTokID, err)
+			return models.TrackVideoResponse{}, err
+		}
 	}
 
-	// 3. Если не нашли — создаём
+	//if video fiend empty -> create new videi in db
 	if video == nil {
 		input := models.CreateVideoInput{
 			TikTokID: tikTokID,
@@ -51,26 +58,26 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 
 		video, err = s.repo.CreateVideo(ctx, input)
 		if err != nil {
+			s.logger.Errorf("TrackVideo: CreateVideo(%s) error: %v", tikTokID, err)
 			return models.TrackVideoResponse{}, err
 		}
 		s.logger.Infof("Created video %s with ID %d", tikTokID, video.ID)
 	}
 
-	// 4. Позже здесь будет вызов провайдера (ensemble),
-	//    сохранение снапшота в video_stats через другой репозиторий и расчёт earnings.
-
-	// 5. Пока возвращаем заглушку на основе video
 	resp := models.TrackVideoResponse{
-		VideoID:        int64(video.ID),
+		VideoID:        video.ID,
 		TikTokID:       video.TikTokID,
 		URL:            video.URL,
 		Title:          "stub title",
 		CurrentViews:   0,
 		CurrentEarning: 0,
 		Currency:       "USD",
-		LastUpdatedAt:  "2025-11-24T01:30:00Z",
+		LastUpdatedAt:  time.Now().UTC().Format(time.RFC3339),
 		Status:         "active",
 	}
+
+	finish := time.Now()
+	s.logger.Infof("Service: TrackVideo finish at:%v", finish)
 
 	return resp, nil
 }

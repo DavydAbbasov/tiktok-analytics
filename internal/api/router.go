@@ -28,14 +28,16 @@ func NewRouter(cfg *config.Config, handler *handlers.Handler) *Router {
 		_, _ = w.Write([]byte("ok"))
 	})
 
+	// Swagger UI
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
+
+	//chi router
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/videos/track", handler.TrackVideo)
 		//to do
 	})
 
-	// Swagger UI
-	r.Get("/swagger/*", httpSwagger.WrapHandler)
-
+	//server
 	server := &http.Server{
 		Addr:         cfg.ListenAddr,
 		Handler:      r,
@@ -43,6 +45,7 @@ func NewRouter(cfg *config.Config, handler *handlers.Handler) *Router {
 		WriteTimeout: time.Duration(cfg.ServerOpts.WriteTimeout) * time.Second,
 		IdleTimeout:  time.Duration(cfg.ServerOpts.IdleTimeout) * time.Second,
 	}
+
 	return &Router{
 		server:   server,
 		handlers: handler,
