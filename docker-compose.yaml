@@ -15,7 +15,7 @@ services:
     ports:
       - "5435:5432"
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
   migrator:
     build:
       context: .
@@ -42,3 +42,5 @@ services:
       - "8080:8080"
     command: ["/app/bin/tiktok"]
     restart: always
+volumes:
+  db_data:
