@@ -1,4 +1,4 @@
-listen_addr: ":8080"
+listen_addr: "127.0.0.1:8080"
 
 server_opts:
   read_timeout: 10

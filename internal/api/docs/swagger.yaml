@@ -1,0 +1,60 @@
+definitions:
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  models.TrackVideoRequest:
+    properties:
+      tiktok_id:
+        example: "1234567890"
+        type: string
+      url:
+        example: https://www.tiktok.com/@user/video/1234567890
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/videos/track:
+    post:
+      consumes:
+      - application/json
+      description: Validates TikTok video, stores/updates it in DB and returns current
+        views and earnings.
+      parameters:
+      - description: Video URL or TikTok ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.TrackVideoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TrackVideoRequest'
+        "400":
+          description: Invalid URL/ID
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Video not found in TikTok
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "429":
+          description: Provider rate limit
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Track TikTok video by URL or ID
+      tags:
+      - videos
+swagger: "2.0"

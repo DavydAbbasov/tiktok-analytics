@@ -7,17 +7,17 @@ import (
 )
 
 type Config struct {
-	ListenAddr  string         `yaml:"listen_addr" env:"HTTP_PORT" env-required:"true"`
-	Server      ServerOpts     `yaml:"server_opts"`
+	ListenAddr  string         `yaml:"listen_addr" env:"HTTP_LISTEN_ADDR" env-required:"true"`
+	ServerOpts  ServerOpts     `yaml:"server_opts"`
 	SQLDataBase SQLDataBase    `yaml:"sql_database"`
 	Provider    ProviderConfig `yaml:"provider"`
 	Earnings    EarningsConfig `yaml:"earnings"`
 }
 
 type ServerOpts struct {
-	ReadTimeoutSeconds  int `yaml:"read_timeout"  env:"HTTP_READ_TIMEOUT"  env-default:"10"`
-	WriteTimeoutSeconds int `yaml:"write_timeout" env:"HTTP_WRITE_TIMEOUT" env-default:"10"`
-	IdleTimeoutSeconds  int `yaml:"idle_timeout"  env:"HTTP_IDLE_TIMEOUT"  env-default:"60"`
+	ReadTimeout  int `yaml:"read_timeout"  env:"HTTP_READ_TIMEOUT"  env-default:"10"`
+	WriteTimeout int `yaml:"write_timeout" env:"HTTP_WRITE_TIMEOUT" env-default:"10"`
+	IdleTimeout  int `yaml:"idle_timeout"  env:"HTTP_IDLE_TIMEOUT"  env-default:"60"`
 }
 
 type SQLDataBase struct {

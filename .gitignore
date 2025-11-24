@@ -16,3 +16,6 @@ coverage.out
 
 # docker/postgres data
 postgres-data/
+
+# docker
+.dockerignore

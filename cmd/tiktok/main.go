@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 	"ttanalytic/internal/application"
+	_ "ttanalytic/internal/api/docs"
 )
 
 func main() {

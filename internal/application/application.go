@@ -2,20 +2,29 @@ package application
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
+	"ttanalytic/internal/api"
+	"ttanalytic/internal/api/handlers"
 	"ttanalytic/internal/config"
 	pgprovider "ttanalytic/internal/infrastructure"
+	"ttanalytic/internal/repo"
+	"ttanalytic/internal/service"
 
 	"go.uber.org/zap"
 )
 
 type Application struct {
-	cfg    *config.Config
-	logger *zap.SugaredLogger
-	db     *pgprovider.Provider
-	wg     sync.WaitGroup
+	cfg     *config.Config
+	logger  *zap.SugaredLogger
+	db      *pgprovider.Provider
+	service handlers.Service
+	repo    *repo.Repository
+	router  *api.Router
+	wg      sync.WaitGroup
 }
 
 func NewApplication() *Application {
@@ -25,12 +34,26 @@ func (a *Application) Start(ctx context.Context) error {
 	if err := a.initConfig(); err != nil {
 		return fmt.Errorf("init config: %w", err)
 	}
+
 	if err := a.initLogger(); err != nil {
 		return fmt.Errorf("init logger: %w", err)
 	}
+
 	if err := a.initDatabase(ctx); err != nil {
 		return fmt.Errorf("init database: %w", err)
 	}
+
+	if err := a.initRepository(); err != nil {
+		return fmt.Errorf("init repository: %w", err)
+	}
+	if err := a.initService(); err != nil {
+		return fmt.Errorf("init service: %w", err)
+	}
+	if err := a.initRouter(); err != nil {
+		return fmt.Errorf("init router: %w", err)
+	}
+
+	a.startHTTPServer()
 
 	a.logger.Info("Application started successfully")
 
@@ -46,11 +69,9 @@ func (a *Application) Wait(ctx context.Context, cancel context.CancelFunc) error
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 
-	_ = shutdownCtx
-
-	// if err := a.router.Shutdown(shutdownCtx); err != nil {
-	// 	a.logger.Errorf("HTTP server shutdown error: %v", err)
-	// }
+	if err := a.router.Shutdown(shutdownCtx); err != nil {
+		a.logger.Errorf("HTTP server shutdown error: %v", err)
+	}
 
 	a.db.Close()
 	a.logger.Info("Database connections closed")
@@ -99,4 +120,42 @@ func (a *Application) initDatabase(ctx context.Context) error {
 	a.logger.Info("Database connection established")
 
 	return nil
+}
+func (a *Application) initRepository() error {
+	a.repo = repo.NewRepository(
+		a.db.DB(),
+		a.logger,
+		a.cfg.SQLDataBase.QueryTimeoutSec,
+	)
+
+	return nil
+}
+func (a *Application) initService() error {
+	a.service = service.NewService(
+		a.repo,
+		a.logger,
+	)
+
+	return nil
+}
+func (a *Application) initRouter() error {
+	h := handlers.NewHandler(
+		a.service,
+		a.logger,
+	)
+
+	a.router = api.NewRouter(a.cfg, h)
+	return nil
+}
+func (a *Application) startHTTPServer() {
+	a.wg.Add(1)
+
+	go func() {
+		defer a.wg.Done()
+
+		a.logger.Infof("Starting HTTP server on %s", a.cfg.ListenAddr)
+		if err := a.router.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			a.logger.Infof("HTTP server error: %w", err)
+		}
+	}()
 }
