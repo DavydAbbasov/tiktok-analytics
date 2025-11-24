@@ -7,9 +7,9 @@ server_opts:
 
 sql_database:
   server: "localhost"
-  port: 5432
+  port: 5435
   database: "tiktok_analytics"
-  username: "postgres"
+  username: "tiktok"
   password: ""
   max_idle_conns: 5
   max_open_conns: 10

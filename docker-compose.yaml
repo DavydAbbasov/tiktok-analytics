@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16.0
+    container_name: tiktok_analytics
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiktok_migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: ["/app/bin/migrator"]
+    restart: "no"
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiktok_app
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    command: ["/app/bin/tiktok"]
+    restart: always

@@ -21,15 +21,15 @@ type ServerOpts struct {
 }
 
 type SQLDataBase struct {
-	Server             string `yaml:"server"      env:"DB_HOST"      env-default:"localhost"`
-	Database           string `yaml:"database"      env:"DB_PORT"      env-default:"5432"`
-	Username           string `yaml:"username"      env:"DB_NAME"      env-required:"true"`
-	Password           string `yaml:"password"  env:"DB_PASSWORD"  env-default:"postgres"`
-	Port               int    `yaml:"port" env:"DB_PORT"`
-	MaxIdleConns       int32  `yaml:"max_idle_conns"  env:"DB_MAX_IDLE_CONNS"  env-default:"5"`
-	MaxOpenConns       int32  `yaml:"max_open_conns"  env:"DB_MAX_OPEN_CONNS"  env-default:"10"`
-	ConnMaxLifetimeMin int    `yaml:"conn_max_lifetime" env:"DB_CONN_MAX_LIFETIME" env-default:"5"` // minutes
-	QueryTimeoutSec    int    `yaml:"query_timeout"    env:"DB_QUERY_TIMEOUT"     env-default:"2"`  // seconds
+	Server             string `yaml:"server"            env:"DB_HOST"               env-required:"true"`
+	Database           string `yaml:"database"          env:"DB_NAME"               env-required:"true"`
+	Username           string `yaml:"username"          env:"DB_USER"`
+	Password           string `yaml:"password"          env:"DB_PASSWORD"`
+	Port               int    `yaml:"port"              env:"DB_PORT"`
+	MaxIdleConns       int32  `yaml:"max_idle_conns"    env:"DB_MAX_IDLE_CONNS"     env-default:"5"`
+	MaxOpenConns       int32  `yaml:"max_open_conns"    env:"DB_MAX_OPEN_CONNS"     env-default:"10"`
+	ConnMaxLifetimeMin int    `yaml:"conn_max_lifetime" env:"DB_CONN_MAX_LIFETIME"  env-default:"5"` // minutes
+	QueryTimeoutSec    int    `yaml:"query_timeout"     env:"DB_QUERY_TIMEOUT"      env-default:"2"` // seconds
 }
 
 type ProviderConfig struct {

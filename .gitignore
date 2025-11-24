@@ -1,2 +1,18 @@
+# env
 .env
+.env.*
+!.env.example
 
+# IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# build artifacts
+bin/
+tiktok_analytics
+coverage.out
+
+# docker/postgres data
+postgres-data/

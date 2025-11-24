@@ -56,7 +56,6 @@ func (a *Application) Wait(ctx context.Context, cancel context.CancelFunc) error
 	a.logger.Info("Database connections closed")
 
 	a.wg.Wait()
-
 	a.logger.Info("Graceful shutdown completed")
 
 	return nil
