@@ -88,7 +88,7 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 
 	query := `
         INSERT INTO videos (tiktok_id, url)
-        VALUES ($1, $2, NOW(), NOW())
+        VALUES ($1, $2)
         RETURNING id, tiktok_id, url, created_at, updated_at
     `
 
