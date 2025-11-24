@@ -101,10 +101,7 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 		&v.UpdatedAt,
 	)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, models.ErrNotFound
-		}
-		r.logger.Errorf("FindVideoByTikTokID query error: %v", err)
+		r.logger.Errorf("CreateVideo query error: %v", err)
 		return nil, err
 	}
 
