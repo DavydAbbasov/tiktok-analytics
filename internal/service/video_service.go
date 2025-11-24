@@ -49,7 +49,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		}
 	}
 
-	//if video fiend empty -> create new videi in db
+	//if there is not video -> create new video in db
 	if video == nil {
 		input := models.CreateVideoInput{
 			TikTokID: tikTokID,
