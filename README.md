@@ -34,6 +34,6 @@ curl "https://ensembledata.com/apis/tt/post/info \
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/DavydAbbasov/tiktok-analytics.git
-cd tiktok-analytics
+1) git clone https://github.com/DavydAbbasov/tiktok-analytics.git
+
 ```
