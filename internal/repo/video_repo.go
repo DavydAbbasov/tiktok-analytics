@@ -52,16 +52,25 @@ func (r *Repository) FindVideoByTikTokID(ctx context.Context, tikTokID string) (
 	defer cancel()
 
 	query := `
-        SELECT id, tiktok_id, url, created_at, updated_at
-        FROM videos
-        WHERE tiktok_id = $1
-    `
+    SELECT
+        v.id,
+        v.tiktok_id,
+        v.url,
+        v.current_views,
+        v.current_earnings,
+        v.created_at,
+        v.updated_at
+    FROM videos v
+    WHERE v.tiktok_id = $1
+`
 
 	var v models.Video
 	err := r.db.QueryRow(ctx, query, tikTokID).Scan(
 		&v.ID,
 		&v.TikTokID,
 		&v.URL,
+		&v.CurrentViews,
+		&v.CurrentEarnings,
 		&v.CreatedAt,
 		&v.UpdatedAt,
 	)
@@ -87,16 +96,32 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 	defer cancel()
 
 	query := `
-        INSERT INTO videos (tiktok_id, url)
-        VALUES ($1, $2)
-        RETURNING id, tiktok_id, url, created_at, updated_at
-    `
+    INSERT INTO videos (tiktok_id, url, current_views, current_earnings)
+    VALUES ($1, $2, $3, $4)
+    RETURNING
+        id,
+        tiktok_id,
+        url,
+        current_views,
+        current_earnings,
+        created_at,
+        updated_at
+`
 
 	var v models.Video
-	err := r.db.QueryRow(ctx, query, input.TikTokID, input.URL).Scan(
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		input.TikTokID,
+		input.URL,
+		input.CurrentViews,
+		input.CurrentEarnings,
+	).Scan(
 		&v.ID,
 		&v.TikTokID,
 		&v.URL,
+		&v.CurrentViews,
+		&v.CurrentEarnings,
 		&v.CreatedAt,
 		&v.UpdatedAt,
 	)
@@ -105,8 +130,7 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 		return nil, err
 	}
 
-	finish := time.Now()
-	r.logger.Infof("Repository: CreateVideo finish at:%v", finish)
+	r.logger.Infof("Repository: CreateVideo finish at:%v", time.Now())
 
 	return &v, nil
 }

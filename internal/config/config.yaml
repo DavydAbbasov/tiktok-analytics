@@ -6,7 +6,7 @@ server_opts:
   idle_timeout: 60
 
 sql_database:
-  server: "localhost"
+  server: "postgres"
   port: 5435
   database: "tiktok_analytics"
   username: "tiktok"

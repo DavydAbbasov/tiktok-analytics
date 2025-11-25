@@ -109,11 +109,14 @@ func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*provider.
 
 	req.Header.Set("Accept", "application/json")
 
+	c.logger.Infof("ensemble CALL START url=%s", fullURL.String())
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request to ensemble failed: %w", err)
 	}
+	c.logger.Infof("ensemble CALL END   url=%s status=%d", fullURL.String(), resp.StatusCode)
 	defer resp.Body.Close()
+
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

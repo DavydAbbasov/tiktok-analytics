@@ -15,9 +15,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/videos/track": {
+        "/api/v1/videos": {
             "post": {
-                "description": "Validates TikTok video, stores/updates it in DB and returns current views and earnings.",
+                "description": "If the video is not yet tracked, the service:\n1) validates the URL/ID,\n2) fetches fresh stats from the provider,\n3) creates a new video record in the DB and writes the first stats snapshot.\nIf the video is already tracked, the service DOES NOT call the provider.\nIt returns the latest saved views and earnings from the ` + "`" + `videos` + "`" + ` table\nand also appends a new row to the hourly stats journal.",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,7 +27,7 @@ const docTemplate = `{
                 "tags": [
                     "videos"
                 ],
-                "summary": "Track TikTok video by URL or ID",
+                "summary": "TrackVideo TikTok video for tracking",
                 "parameters": [
                     {
                         "description": "Video URL or TikTok ID",
@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.TrackVideoRequest"
+                            "$ref": "#/definitions/models.TrackVideoResponse"
                         }
                     },
                     "400": {
@@ -53,7 +53,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Video not found in TikTok",
+                        "description": "Video not found on TikTok",
                         "schema": {
                             "$ref": "#/definitions/handlers.ErrorResponse"
                         }
@@ -96,6 +96,47 @@ const docTemplate = `{
                 "url": {
                     "type": "string",
                     "example": "https://www.tiktok.com/@user/video/1234567890"
+                }
+            }
+        },
+        "models.TrackVideoResponse": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "type": "string",
+                    "example": "USD"
+                },
+                "current_earning": {
+                    "type": "number",
+                    "example": 1.5
+                },
+                "current_views": {
+                    "type": "integer",
+                    "example": 15000
+                },
+                "last_updated_at": {
+                    "type": "string",
+                    "example": "2025-11-24T01:30:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "active"
+                },
+                "tiktok_id": {
+                    "type": "string",
+                    "example": "1234567890"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "My viral video"
+                },
+                "url": {
+                    "type": "string",
+                    "example": "https://www.tiktok.com/@user/video/1234567890"
+                },
+                "video_id": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         }

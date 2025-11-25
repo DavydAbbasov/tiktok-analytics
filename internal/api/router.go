@@ -44,7 +44,8 @@ func NewRouter(cfg *config.Config, handler *handlers.Handler) *Router {
 
 	//chi router
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Post("/videos/track", handler.TrackVideo)
+		//create or get video
+		r.Post("/videos", handler.TrackVideo)
 		//to do
 	})
 

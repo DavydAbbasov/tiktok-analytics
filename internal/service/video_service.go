@@ -35,12 +35,13 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	start := time.Now()
 	s.logger.Infof("Service: TrackVideo start at:%v", start)
 
-	//validate
+	//validation
 	tikTokID := req.TikTokID
 	if req.URL == "" && req.TikTokID == "" {
 		return models.TrackVideoResponse{}, errors.New("either url or tiktok_id must be provided")
 	}
 
+	//try to find existing video
 	video, err := s.repo.FindVideoByTikTokID(ctx, tikTokID)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
@@ -51,26 +52,29 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		}
 	}
 
-	//if there is not video -> create new video in db
-	if video == nil {
-		input := models.CreateVideoInput{
-			TikTokID: tikTokID,
-			URL:      req.URL,
+	//video already exists
+	if video != nil {
+		s.logger.Infof("TrackVideo: video %s found in DB, not calling provider", tikTokID)
+
+		resp := models.TrackVideoResponse{
+			VideoID:        video.ID,
+			TikTokID:       video.TikTokID,
+			URL:            video.URL,
+			Title:          "stub title",
+			CurrentViews:   video.CurrentViews,
+			CurrentEarning: video.CurrentEarnings,
+			Currency:       "USD",
+			LastUpdatedAt:  video.UpdatedAt.UTC().Format(time.RFC3339),
+			Status:         "active",
 		}
 
-		video, err = s.repo.CreateVideo(ctx, input)
-		if err != nil {
-			s.logger.Errorf("TrackVideo: CreateVideo(%s) error: %v", tikTokID, err)
-			return models.TrackVideoResponse{}, err
-		}
-		s.logger.Infof("Created video %s with ID %d", tikTokID, video.ID)
+		s.logger.Infof("Service: TrackVideo finish (from DB) at:%v", time.Now())
+		return resp, nil
 	}
 
-	videoURL := video.URL
-	if videoURL == "" {
-		videoURL = req.URL
-	}
+	videoURL := req.URL
 
+	//call to the provider
 	stats, err := s.provider.GetVideoStats(ctx, videoURL)
 	if err != nil {
 		s.logger.Errorf("TrackVideo: provider error for %s: %v", videoURL, err)
@@ -82,6 +86,23 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	views := stats.Views
 	earnings := s.calculateEarnings(stats.Views)
 
+	//create video in db
+	input := models.CreateVideoInput{
+		TikTokID:        tikTokID,
+		URL:             req.URL,
+		CurrentViews:    views,
+		CurrentEarnings: earnings,
+	}
+
+	//create new video in db
+	video, err = s.repo.CreateVideo(ctx, input)
+	if err != nil {
+		s.logger.Errorf("TrackVideo: CreateVideo(%s) error: %v", tikTokID, err)
+		return models.TrackVideoResponse{}, err
+	}
+	s.logger.Infof("Created video %s with ID %d", tikTokID, video.ID)
+
+	//build response
 	resp := models.TrackVideoResponse{
 		VideoID:        video.ID,
 		TikTokID:       video.TikTokID,
@@ -90,16 +111,16 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		CurrentViews:   views,
 		CurrentEarning: earnings,
 		Currency:       "USD",
-		LastUpdatedAt:  time.Now().UTC().Format(time.RFC3339),
+		LastUpdatedAt:  video.UpdatedAt.UTC().Format(time.RFC3339),
 		Status:         "active",
 	}
 
-	finish := time.Now()
-	s.logger.Infof("Service: TrackVideo finish at:%v", finish)
+	s.logger.Infof("Service: TrackVideo finish (created new) at:%v", time.Now())
 
 	return resp, nil
 }
 func (s *Service) calculateEarnings(views int64) float64 {
-	const cpm = 0.10
-	return float64(views) / 1000.0 * cpm
+
+	const c = 0.10
+	return float64(views) / 1000.0 * c
 }

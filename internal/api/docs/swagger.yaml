@@ -15,15 +15,51 @@ definitions:
         example: https://www.tiktok.com/@user/video/1234567890
         type: string
     type: object
+  models.TrackVideoResponse:
+    properties:
+      currency:
+        example: USD
+        type: string
+      current_earning:
+        example: 1.5
+        type: number
+      current_views:
+        example: 15000
+        type: integer
+      last_updated_at:
+        example: "2025-11-24T01:30:00Z"
+        type: string
+      status:
+        example: active
+        type: string
+      tiktok_id:
+        example: "1234567890"
+        type: string
+      title:
+        example: My viral video
+        type: string
+      url:
+        example: https://www.tiktok.com/@user/video/1234567890
+        type: string
+      video_id:
+        example: 1
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
-  /api/v1/videos/track:
+  /api/v1/videos:
     post:
       consumes:
       - application/json
-      description: Validates TikTok video, stores/updates it in DB and returns current
-        views and earnings.
+      description: |-
+        If the video is not yet tracked, the service:
+        1) validates the URL/ID,
+        2) fetches fresh stats from the provider,
+        3) creates a new video record in the DB and writes the first stats snapshot.
+        If the video is already tracked, the service DOES NOT call the provider.
+        It returns the latest saved views and earnings from the `videos` table
+        and also appends a new row to the hourly stats journal.
       parameters:
       - description: Video URL or TikTok ID
         in: body
@@ -37,13 +73,13 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.TrackVideoRequest'
+            $ref: '#/definitions/models.TrackVideoResponse'
         "400":
           description: Invalid URL/ID
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
         "404":
-          description: Video not found in TikTok
+          description: Video not found on TikTok
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
         "429":
@@ -54,7 +90,7 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
-      summary: Track TikTok video by URL or ID
+      summary: TrackVideo TikTok video for tracking
       tags:
       - videos
 swagger: "2.0"

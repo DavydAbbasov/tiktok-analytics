@@ -36,15 +36,19 @@ type TrackVideoResponse struct {
 
 // domain/db model
 type Video struct {
-	ID        int64     `db:"id"`
-	TikTokID  string    `db:"tiktok_id"`
-	URL       string    `db:"url"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	ID              int64     `db:"id"`
+	TikTokID        string    `db:"tiktok_id"`
+	URL             string    `db:"url"`
+	CurrentViews    int64     `db:"current_views"`
+	CurrentEarnings float64   `db:"current_earnings"`
+	CreatedAt       time.Time `db:"created_at"`
+	UpdatedAt       time.Time `db:"updated_at"`
 }
 
 // internal  input
 type CreateVideoInput struct {
-	TikTokID string
-	URL      string
+	TikTokID        string
+	URL             string
+	CurrentViews    int64
+	CurrentEarnings float64
 }

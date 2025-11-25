@@ -29,19 +29,30 @@ func NewHandler(service Service, logger Logger) *Handler {
 	}
 }
 
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Message string `json:"message,omitempty"`
+}
+
 // TrackVideo handles POST
-// @Summary      Track TikTok video by URL or ID
-// @Description  Validates TikTok video, stores/updates it in DB and returns current views and earnings.
-// @Tags         videos
-// @Accept       json
-// @Produce      json
-// @Param        request body     models.TrackVideoRequest true "Video URL or TikTok ID"
-// @Success      200     {object} models.TrackVideoRequest
-// @Failure      400     {object} ErrorResponse "Invalid URL/ID"
-// @Failure      404     {object} ErrorResponse "Video not found in TikTok"
-// @Failure      429     {object} ErrorResponse "Provider rate limit"
-// @Failure      500     {object} ErrorResponse "Internal server error"
-// @Router       /api/v1/videos/track [post]
+// @Summary     TrackVideo TikTok video for tracking
+// @Description If the video is not yet tracked, the service:
+// @Description  1) validates the URL/ID,
+// @Description  2) fetches fresh stats from the provider,
+// @Description  3) creates a new video record in the DB and writes the first stats snapshot.
+// @Description If the video is already tracked, the service DOES NOT call the provider.
+// @Description It returns the latest saved views and earnings from the `videos` table
+// @Description and also appends a new row to the hourly stats journal.
+// @Tags        videos
+// @Accept      json
+// @Produce     json
+// @Param       request body models.TrackVideoRequest true "Video URL or TikTok ID"
+// @Success     200 {object} models.TrackVideoResponse
+// @Failure     400 {object} ErrorResponse "Invalid URL/ID"
+// @Failure     404 {object} ErrorResponse "Video not found on TikTok"
+// @Failure     429 {object} ErrorResponse "Provider rate limit"
+// @Failure     500 {object} ErrorResponse "Internal server error"
+// @Router      /api/v1/videos [post]
 func (h *Handler) TrackVideo(w http.ResponseWriter, r *http.Request) {
 	var req models.TrackVideoRequest
 
@@ -62,11 +73,6 @@ func (h *Handler) TrackVideo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.sendJSON(w, http.StatusOK, resp)
-}
-
-type ErrorResponse struct {
-	Error   string `json:"error"`
-	Message string `json:"message,omitempty"`
 }
 
 func (h *Handler) sendJSON(w http.ResponseWriter, status int, data interface{}) {
