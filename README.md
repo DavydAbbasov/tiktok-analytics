@@ -5,18 +5,12 @@ The service exposes a REST API, stores video metadata and stats in PostgreSQL, a
 live metrics from the EnsembleData TikTok API.
 
 ## Tech stack
-
 - **Language:** Go 1.22+
 - **HTTP server:** net/http + chi router
-- **Architecture:** Clean Architecture / layered (cmd, internal/{api, application, service, repo, provider})
 - **Database:** PostgreSQL
-- **Migrations:** SQL migrations (internal/migrations)
 - **External provider:** EnsembleData TikTok API
-- **Config:** YAML + environment variables (cleanenv)
-- **Logging:** structured logger (zerolog-style)
 
 ## External TikTok provider
-
 The service does **not** scrape TikTok directly.
 All video statistics are fetched via the **EnsembleData TikTok API**.
 
@@ -27,22 +21,19 @@ All video statistics are fetched via the **EnsembleData TikTok API**.
 - Required params:
   - `url` – full TikTok video URL
   - `token` – your EnsembleData API token
-  - optional: `new_version`, `download_video`
 
 Example raw request:
-
 ```bash
 curl "https://ensembledata.com/apis/tt/post/info \
   ?url=https%3A%2F%2Fwww.tiktok.com%2F@user%2Fvideo%2F1234567890 \
   &token=YOUR_TOKEN \
   &new_version=false \
   &download_video=false"
-
-
+```
 ## How to run locally
-
 1. **Clone the repository**
 
 ```bash
 git clone https://github.com/DavydAbbasov/tiktok-analytics.git
 cd tiktok-analytics
+```
