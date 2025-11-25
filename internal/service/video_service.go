@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 	"ttanalytic/internal/models"
+	"ttanalytic/internal/provider"
 )
 
 type Repository interface {
@@ -18,14 +19,16 @@ type Logger interface {
 	Info(args ...any)
 }
 type Service struct {
-	repo   Repository
-	logger Logger
+	repo     Repository
+	provider provider.TikTokProvider
+	logger   Logger
 }
 
-func NewService(repo Repository, logger Logger) *Service {
+func NewService(repo Repository, prov provider.TikTokProvider, logger Logger) *Service {
 	return &Service{
-		repo:   repo,
-		logger: logger,
+		repo:     repo,
+		provider: prov,
+		logger:   logger,
 	}
 }
 func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) (models.TrackVideoResponse, error) {
@@ -34,9 +37,8 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 
 	//validate
 	tikTokID := req.TikTokID
-	if tikTokID == "" {
-		return models.TrackVideoResponse{},
-			errors.New("tikTokID is empty and URL parsing is not implemented yet")
+	if req.URL == "" && req.TikTokID == "" {
+		return models.TrackVideoResponse{}, errors.New("either url or tiktok_id must be provided")
 	}
 
 	video, err := s.repo.FindVideoByTikTokID(ctx, tikTokID)
@@ -64,13 +66,29 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		s.logger.Infof("Created video %s with ID %d", tikTokID, video.ID)
 	}
 
+	videoURL := video.URL
+	if videoURL == "" {
+		videoURL = req.URL
+	}
+
+	stats, err := s.provider.GetVideoStats(ctx, videoURL)
+	if err != nil {
+		s.logger.Errorf("TrackVideo: provider error for %s: %v", videoURL, err)
+		return models.TrackVideoResponse{}, err
+	}
+	s.logger.Infof("Provider stats for %s: views=%d", videoURL, stats.Views)
+
+	//calculate
+	views := stats.Views
+	earnings := s.calculateEarnings(stats.Views)
+
 	resp := models.TrackVideoResponse{
 		VideoID:        video.ID,
 		TikTokID:       video.TikTokID,
 		URL:            video.URL,
 		Title:          "stub title",
-		CurrentViews:   0,
-		CurrentEarning: 0,
+		CurrentViews:   views,
+		CurrentEarning: earnings,
 		Currency:       "USD",
 		LastUpdatedAt:  time.Now().UTC().Format(time.RFC3339),
 		Status:         "active",
@@ -80,4 +98,8 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	s.logger.Infof("Service: TrackVideo finish at:%v", finish)
 
 	return resp, nil
+}
+func (s *Service) calculateEarnings(views int64) float64 {
+	const cpm = 0.10
+	return float64(views) / 1000.0 * cpm
 }

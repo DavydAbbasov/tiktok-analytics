@@ -9,7 +9,9 @@ import (
 	"ttanalytic/internal/api/handlers"
 	"ttanalytic/internal/config"
 
+	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -21,6 +23,15 @@ type Router struct {
 
 func NewRouter(cfg *config.Config, handler *handlers.Handler) *Router {
 	r := chi.NewRouter()
+
+	// middleware
+	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}))
 
 	// health
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {

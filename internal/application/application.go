@@ -11,6 +11,8 @@ import (
 	"ttanalytic/internal/api/handlers"
 	"ttanalytic/internal/config"
 	pgprovider "ttanalytic/internal/infrastructure"
+	tiktokprovider "ttanalytic/internal/infrastructure/tiktok_provider"
+	"ttanalytic/internal/provider"
 	"ttanalytic/internal/repo"
 	"ttanalytic/internal/service"
 
@@ -18,13 +20,14 @@ import (
 )
 
 type Application struct {
-	cfg     *config.Config
-	logger  *zap.SugaredLogger
-	db      *pgprovider.Provider
-	service handlers.Service
-	repo    *repo.Repository
-	router  *api.Router
-	wg      sync.WaitGroup
+	cfg      *config.Config
+	logger   *zap.SugaredLogger
+	provider provider.TikTokProvider
+	db       *pgprovider.Provider
+	service  handlers.Service
+	repo     *repo.Repository
+	router   *api.Router
+	wg       sync.WaitGroup
 }
 
 func NewApplication() *Application {
@@ -46,9 +49,14 @@ func (a *Application) Start(ctx context.Context) error {
 	if err := a.initRepository(); err != nil {
 		return fmt.Errorf("init repository: %w", err)
 	}
+
+	if err := a.initProvider(ctx); err != nil {
+		return fmt.Errorf("init provider: %w", err)
+	}
 	if err := a.initService(); err != nil {
 		return fmt.Errorf("init service: %w", err)
 	}
+
 	if err := a.initRouter(); err != nil {
 		return fmt.Errorf("init router: %w", err)
 	}
@@ -133,9 +141,30 @@ func (a *Application) initRepository() error {
 func (a *Application) initService() error {
 	a.service = service.NewService(
 		a.repo,
+		a.provider,
 		a.logger,
 	)
 
+	return nil
+}
+func (a *Application) initProvider(ctx context.Context) error {
+	log := a.logger
+
+	httpCli := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	cfg := tiktokprovider.Config{
+		BaseURL: a.cfg.Provider.URL,
+		APIKey:  a.cfg.Provider.Token,
+	}
+
+	prov, err := tiktokprovider.NewClient(ctx, httpCli, cfg, log)
+	if err != nil {
+		return err
+	}
+
+	a.provider = prov
 	return nil
 }
 func (a *Application) initRouter() error {

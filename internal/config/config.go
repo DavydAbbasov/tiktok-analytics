@@ -33,9 +33,9 @@ type SQLDataBase struct {
 }
 
 type ProviderConfig struct {
-	Type  string `yaml:"type"  env:"PROVIDER_TYPE"  env-default:"ensemble"`
-	URL   string `yaml:"url"   env:"PROVIDER_URL"   env-default:"https://ensembledata.com/apis"`
-	Token string `yaml:"token" env:"PROVIDER_TOKEN" env-required:"true"`
+	Type  string `yaml:"type"  env:"PROVIDER_TYPE"`
+	URL   string `yaml:"url"   env:"PROVIDER_URL"`
+	Token string `yaml:"token" env:"PROVIDER_TOKEN"`
 }
 
 type EarningsConfig struct {

@@ -19,7 +19,7 @@ sql_database:
 provider:
   type: "ensemble"
   url: "https://ensembledata.com/apis"
-  token: "CHANGE_ME"
+  token: ""
 
 earnings:
   rate: 0.10 # dollars

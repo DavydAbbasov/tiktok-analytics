@@ -54,7 +54,7 @@ func (h *Handler) TrackVideo(w http.ResponseWriter, r *http.Request) {
 		h.sendError(w, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
-
+	h.logger.Infof("HTTP TrackVideo: incoming url=%s", req.URL)
 	resp, err := h.service.TrackVideo(r.Context(), req)
 	if err != nil {
 		h.handleServiceError(w, err)
