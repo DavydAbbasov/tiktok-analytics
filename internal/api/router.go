@@ -46,7 +46,7 @@ func NewRouter(cfg *config.Config, handler *handlers.Handler) *Router {
 	r.Route("/api/v1", func(r chi.Router) {
 		//create or get video
 		r.Post("/videos", handler.TrackVideo)
-		//to do
+		r.Get("/videos/{tiktok_id}", handler.GetVideo)
 	})
 
 	//server

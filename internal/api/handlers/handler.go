@@ -6,10 +6,13 @@ import (
 	"errors"
 	"net/http"
 	"ttanalytic/internal/models"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Service interface {
 	TrackVideo(ctx context.Context, req models.TrackVideoRequest) (models.TrackVideoResponse, error)
+	GetVideo(ctx context.Context, tiktok string) (models.TrackVideoResponse, error)
 }
 type Logger interface {
 	Errorf(format string, args ...any)
@@ -66,6 +69,7 @@ func (h *Handler) TrackVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logger.Infof("HTTP TrackVideo: incoming url=%s", req.URL)
+
 	resp, err := h.service.TrackVideo(r.Context(), req)
 	if err != nil {
 		h.handleServiceError(w, err)
@@ -84,10 +88,18 @@ func (h *Handler) sendJSON(w http.ResponseWriter, status int, data interface{}) 
 }
 
 func (h *Handler) sendError(w http.ResponseWriter, status int, message string, err error) {
-	h.logger.Errorf("%s: %v", message, err)
+	if err != nil {
+		h.logger.Errorf("%s: %v", message, err)
+	} else {
+		h.logger.Errorf("%s", message)
+	}
+
 	resp := ErrorResponse{
-		Error:   message,
-		Message: err.Error(),
+		Error: message,
+	}
+
+	if err != nil {
+		resp.Message = err.Error()
 	}
 
 	h.sendJSON(w, status, resp)
@@ -107,4 +119,35 @@ func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
 	}
 
 	h.sendError(w, status, message, err)
+}
+
+// GetVideo handles GET
+// @Summary     Get latest saved TikTok video stats
+// @Description Returns the last saved views and earnings for a TikTok video
+// @Description from the `videos` table. Does NOT call external provider.
+// @Tags        videos
+// @Accept      json
+// @Produce     json
+// @Param       tiktok_id path string true "TikTok video ID"
+// @Success     200 {object} models.TrackVideoResponse
+// @Failure     400 {object} ErrorResponse "Invalid TikTok ID"
+// @Failure     404 {object} ErrorResponse "Video not found"
+// @Failure     500 {object} ErrorResponse "Internal server error"
+// @Router      /api/v1/videos/{tiktok_id} [get]
+func (h *Handler) GetVideo(w http.ResponseWriter, r *http.Request) {
+	tikTokID := chi.URLParam(r, "tiktok_id")
+	if tikTokID == "" {
+		h.sendError(w, http.StatusBadRequest, "TikTok ID is required", nil)
+		return
+	}
+
+	h.logger.Infof("HTTP GetVideo: incoming tiktok_id=%s", tikTokID)
+
+	resp, err := h.service.GetVideo(r.Context(), tikTokID)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	h.sendJSON(w, http.StatusOK, resp)
 }

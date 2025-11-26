@@ -23,15 +23,16 @@ func (r *TrackVideoRequest) Validate() error {
 // RESPONSE DTO
 // give to the client
 type TrackVideoResponse struct {
-	VideoID        int64   `json:"video_id"        example:"1"`
-	TikTokID       string  `json:"tiktok_id"       example:"1234567890"`
-	URL            string  `json:"url"             example:"https://www.tiktok.com/@user/video/1234567890"`
-	Title          string  `json:"title"           example:"My viral video"`
-	CurrentViews   int64   `json:"current_views"   example:"15000"`
-	CurrentEarning float64 `json:"current_earning" example:"1.5"`
-	Currency       string  `json:"currency"        example:"USD"`
-	LastUpdatedAt  string  `json:"last_updated_at" example:"2025-11-24T01:30:00Z"`
-	Status         string  `json:"status"          example:"active"`
+	VideoID         int64   `json:"video_id"        example:"1"`
+	TikTokID        string  `json:"tiktok_id"       example:"1234567890"`
+	URL             string  `json:"url"             example:"https://www.tiktok.com/@user/video/1234567890"`
+	Title           string  `json:"title"           example:"My viral video"`
+	CurrentViews    int64   `json:"current_views"   example:"15000"`
+	CurrentEarnings float64 `json:"current_earnings" example:"1.5"`
+	Currency        string  `json:"currency"        example:"USD"`
+	CreatedAt       string  `json:"created_at"      example:"2025-11-24T01:30:00Z"`
+	LastUpdatedAt   string  `json:"last_updated_at" example:"2025-11-24T01:30:00Z"`
+	Status          string  `json:"status"          example:"active"`
 }
 
 // domain/db model

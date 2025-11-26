@@ -61,6 +61,56 @@
                     }
                 }
             }
+        },
+        "/api/v1/videos/{tiktok_id}": {
+            "get": {
+                "description": "Returns the last saved views and earnings for a TikTok video\nfrom the `videos` table. Does NOT call external provider.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "videos"
+                ],
+                "summary": "Get latest saved TikTok video stats",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TikTok video ID",
+                        "name": "tiktok_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.TrackVideoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid TikTok ID",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Video not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -91,11 +141,15 @@
         "models.TrackVideoResponse": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-11-24T01:30:00Z"
+                },
                 "currency": {
                     "type": "string",
                     "example": "USD"
                 },
-                "current_earning": {
+                "current_earnings": {
                     "type": "number",
                     "example": 1.5
                 },

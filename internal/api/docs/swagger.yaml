@@ -17,10 +17,13 @@ definitions:
     type: object
   models.TrackVideoResponse:
     properties:
+      created_at:
+        example: "2025-11-24T01:30:00Z"
+        type: string
       currency:
         example: USD
         type: string
-      current_earning:
+      current_earnings:
         example: 1.5
         type: number
       current_views:
@@ -91,6 +94,41 @@ paths:
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
       summary: TrackVideo TikTok video for tracking
+      tags:
+      - videos
+  /api/v1/videos/{tiktok_id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the last saved views and earnings for a TikTok video
+        from the `videos` table. Does NOT call external provider.
+      parameters:
+      - description: TikTok video ID
+        in: path
+        name: tiktok_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TrackVideoResponse'
+        "400":
+          description: Invalid TikTok ID
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Video not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Get latest saved TikTok video stats
       tags:
       - videos
 swagger: "2.0"

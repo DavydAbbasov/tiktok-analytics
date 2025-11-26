@@ -57,15 +57,16 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		s.logger.Infof("TrackVideo: video %s found in DB, not calling provider", tikTokID)
 
 		resp := models.TrackVideoResponse{
-			VideoID:        video.ID,
-			TikTokID:       video.TikTokID,
-			URL:            video.URL,
-			Title:          "stub title",
-			CurrentViews:   video.CurrentViews,
-			CurrentEarning: video.CurrentEarnings,
-			Currency:       "USD",
-			LastUpdatedAt:  video.UpdatedAt.UTC().Format(time.RFC3339),
-			Status:         "active",
+			VideoID:         video.ID,
+			TikTokID:        video.TikTokID,
+			URL:             video.URL,
+			Title:           "stub title",
+			CurrentViews:    video.CurrentViews,
+			CurrentEarnings: video.CurrentEarnings,
+			Currency:        "USD",
+			LastUpdatedAt:   video.UpdatedAt.UTC().Format(time.RFC3339),
+			CreatedAt:       video.CreatedAt.UTC().Format(time.RFC3339),
+			Status:          "active",
 		}
 
 		s.logger.Infof("Service: TrackVideo finish (from DB) at:%v", time.Now())
@@ -104,15 +105,16 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 
 	//build response
 	resp := models.TrackVideoResponse{
-		VideoID:        video.ID,
-		TikTokID:       video.TikTokID,
-		URL:            video.URL,
-		Title:          "stub title",
-		CurrentViews:   views,
-		CurrentEarning: earnings,
-		Currency:       "USD",
-		LastUpdatedAt:  video.UpdatedAt.UTC().Format(time.RFC3339),
-		Status:         "active",
+		VideoID:         video.ID,
+		TikTokID:        video.TikTokID,
+		URL:             video.URL,
+		Title:           "stub title",
+		CurrentViews:    views,
+		CurrentEarnings: earnings,
+		Currency:        "USD",
+		LastUpdatedAt:   video.UpdatedAt.UTC().Format(time.RFC3339),
+		CreatedAt:       video.CreatedAt.UTC().Format(time.RFC3339),
+		Status:          "active",
 	}
 
 	s.logger.Infof("Service: TrackVideo finish (created new) at:%v", time.Now())
@@ -123,4 +125,31 @@ func (s *Service) calculateEarnings(views int64) float64 {
 
 	const c = 0.10
 	return float64(views) / 1000.0 * c
+}
+
+func (s *Service) GetVideo(ctx context.Context, tikTokID string) (models.TrackVideoResponse, error) {
+	start := time.Now()
+	s.logger.Infof("Service: GetVideo start at:%v, tiktok_id=%s", start, tikTokID)
+
+	v, err := s.repo.FindVideoByTikTokID(ctx, tikTokID)
+	if err != nil {
+		s.logger.Errorf("Service: GetVideo repo error: %v", err)
+		return models.TrackVideoResponse{}, err
+	}
+
+	resp := models.TrackVideoResponse{
+		VideoID:         v.ID,
+		TikTokID:        v.TikTokID,
+		URL:             v.URL,
+		Title:           "stub title",
+		CurrentViews:    v.CurrentViews,
+		CurrentEarnings: v.CurrentEarnings,
+		Currency:        "USD",
+		LastUpdatedAt:   v.UpdatedAt.UTC().Format(time.RFC3339),
+		CreatedAt:       v.CreatedAt.UTC().Format(time.RFC3339),
+		Status:          "active",
+	}
+
+	s.logger.Infof("Service: GetVideo finish in %s", time.Since(start))
+	return resp, nil
 }
