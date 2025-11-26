@@ -11,6 +11,7 @@ import (
 type Repository interface {
 	FindVideoByTikTokID(ctx context.Context, tikTokID string) (*models.Video, error)
 	CreateVideo(ctx context.Context, input models.CreateVideoInput) (*models.Video, error)
+	AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error
 }
 type Logger interface {
 	Errorf(format string, args ...any)
@@ -102,6 +103,16 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		return models.TrackVideoResponse{}, err
 	}
 	s.logger.Infof("Created video %s with ID %d", tikTokID, video.ID)
+
+	//write in jurnal 
+	if err := s.repo.AppendVideoStats(ctx, models.CreateVideoStatsInput{
+		VideoID:  video.ID,
+		Views:    views,
+		Earnings: earnings,
+	}); err != nil {
+		s.logger.Errorf("Service: TrackVideo failed to append stats for video_id=%d: %v", video.ID, err)
+		return models.TrackVideoResponse{}, err
+	}
 
 	//build response
 	resp := models.TrackVideoResponse{

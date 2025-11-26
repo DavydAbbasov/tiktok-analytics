@@ -53,3 +53,10 @@ type CreateVideoInput struct {
 	CurrentViews    int64
 	CurrentEarnings float64
 }
+
+// internal input for stats journal
+type CreateVideoStatsInput struct {
+	VideoID  int64
+	Views    int64
+	Earnings float64
+}

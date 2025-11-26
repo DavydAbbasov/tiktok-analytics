@@ -134,3 +134,28 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 
 	return &v, nil
 }
+func (r *Repository) AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error {
+	start := time.Now()
+	r.logger.Infof("Repository: AppendVideoStats start at:%v, video_id=%d", start, input.VideoID)
+
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
+	defer cancel()
+
+	query := `
+        INSERT INTO video_stats  (video_id, views, earnings)
+        VALUES ($1, $2, $3)
+    `
+
+	_, err := r.db.Exec(ctx, query,
+		input.VideoID,
+		input.Views,
+		input.Earnings,
+	)
+	if err != nil {
+		r.logger.Errorf("Repository: AppendVideoStats query error: %v", err)
+		return err
+	}
+
+	r.logger.Infof("Repository: AppendVideoStats finish at:%v", time.Now())
+	return nil
+}
