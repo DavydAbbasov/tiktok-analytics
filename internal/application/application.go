@@ -27,7 +27,9 @@ type Application struct {
 	service  handlers.Service
 	repo     *repo.Repository
 	router   *api.Router
-	wg       sync.WaitGroup
+	updater  *service.UpdaterService
+
+	wg sync.WaitGroup
 }
 
 func NewApplication() *Application {
@@ -53,13 +55,25 @@ func (a *Application) Start(ctx context.Context) error {
 	if err := a.initProvider(ctx); err != nil {
 		return fmt.Errorf("init provider: %w", err)
 	}
+
 	if err := a.initService(); err != nil {
 		return fmt.Errorf("init service: %w", err)
+	}
+
+	if err := a.initUpdater(); err != nil {
+		return fmt.Errorf("init updater: %w", err)
 	}
 
 	if err := a.initRouter(); err != nil {
 		return fmt.Errorf("init router: %w", err)
 	}
+
+	go a.updater.Run(ctx)
+	a.logger.Infof("Updater: goroutine started (interval=%s, min_update_age=%s, batch=%d)",
+		a.cfg.Updater.Interval,
+		a.cfg.Updater.MinUpdateAge,
+		a.cfg.Updater.BatchSize,
+	)
 
 	a.startHTTPServer()
 
@@ -174,6 +188,22 @@ func (a *Application) initRouter() error {
 	)
 
 	a.router = api.NewRouter(a.cfg, h)
+	return nil
+}
+func (a *Application) initUpdater() error {
+	updaterCfg := service.UpdaterConfig{
+		Interval:     time.Duration(a.cfg.Updater.Interval) * time.Second,
+		BatchSize:    a.cfg.Updater.BatchSize,
+		MinUpdateAge: time.Duration(a.cfg.Updater.MinUpdateAge) * time.Second,
+	}
+
+	a.updater = service.NewUpdaterService(
+		a.repo,
+		a.provider,
+		a.logger,
+		updaterCfg,
+		a.cfg.Earnings,
+	)
 	return nil
 }
 func (a *Application) startHTTPServer() {

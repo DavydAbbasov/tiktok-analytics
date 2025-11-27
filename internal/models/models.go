@@ -46,7 +46,7 @@ type Video struct {
 	UpdatedAt       time.Time `db:"updated_at"`
 }
 
-// internal  input
+// to create a video recording
 type CreateVideoInput struct {
 	TikTokID        string
 	URL             string
@@ -56,6 +56,11 @@ type CreateVideoInput struct {
 
 // internal input for stats journal
 type CreateVideoStatsInput struct {
+	VideoID  int64
+	Views    int64
+	Earnings float64
+}
+type UpdateVideoAggregatesInput struct {
 	VideoID  int64
 	Views    int64
 	Earnings float64

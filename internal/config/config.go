@@ -12,6 +12,7 @@ type Config struct {
 	SQLDataBase SQLDataBase    `yaml:"sql_database"`
 	Provider    ProviderConfig `yaml:"provider"`
 	Earnings    EarningsConfig `yaml:"earnings"`
+	Updater     UpdaterConfig  `yaml:"updater"`
 }
 
 type ServerOpts struct {
@@ -39,8 +40,13 @@ type ProviderConfig struct {
 }
 
 type EarningsConfig struct {
-	Rate float64 `yaml:"rate" env:"EARNINGS_RATE" env-default:"0.10"`
-	Per  int64   `yaml:"per"  env:"EARNINGS_PER"  env-default:"1000"`
+	Rate float64 `yaml:"rate"`
+	Per  int64   `yaml:"per"`
+}
+type UpdaterConfig struct {
+	Interval     int `yaml:"interval"`
+	BatchSize    int `yaml:"batch_size"`
+	MinUpdateAge int `yaml:"min_update_age"`
 }
 
 func ParseConfig() (*Config, error) {
