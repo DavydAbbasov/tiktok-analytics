@@ -26,6 +26,6 @@ earnings:
   per: 1000 # views
 
 updater:
-  interval: 60 # once an hour
+  interval: 3600 # once an hour
   batch_size: 50 # how many videos in one pass
-  min_update_age: 1 # do not touch if you updated it less than an hour ago
+  min_update_age: 60 # do not touch if you updated it less than an hour ago

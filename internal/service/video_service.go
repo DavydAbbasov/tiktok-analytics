@@ -12,6 +12,7 @@ type Repository interface {
 	FindVideoByTikTokID(ctx context.Context, tikTokID string) (*models.Video, error)
 	CreateVideo(ctx context.Context, input models.CreateVideoInput) (*models.Video, error)
 	AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error
+	GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) ([]*models.VideoStatPoint, error)
 }
 type Logger interface {
 	Errorf(format string, args ...any)
@@ -104,7 +105,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	}
 	s.logger.Infof("Created video %s with ID %d", tikTokID, video.ID)
 
-	//write in jurnal 
+	//write in jurnal
 	if err := s.repo.AppendVideoStats(ctx, models.CreateVideoStatsInput{
 		VideoID:  video.ID,
 		Views:    views,
@@ -162,5 +163,25 @@ func (s *Service) GetVideo(ctx context.Context, tikTokID string) (models.TrackVi
 	}
 
 	s.logger.Infof("Service: GetVideo finish in %s", time.Since(start))
+	return resp, nil
+}
+func (s *Service) GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) (models.VideoHistoryResponse, error) {
+	s.logger.Infof("Service: GetVideoHistory start video_id=%d", videoID)
+
+	points, err := s.repo.GetVideoHistory(ctx, videoID, from, to)
+	if err != nil {
+		s.logger.Errorf("Service: GetVideoHistory repo error: %v", err)
+		return models.VideoHistoryResponse{}, err
+	}
+
+	historyV := make([]models.VideoStatPoint, 0, len(points))
+	for _, p := range points {
+		historyV = append(historyV, *p)
+	}
+	resp := models.VideoHistoryResponse{
+		VideoID:      videoID,
+		HistoryVideo: historyV,
+	}
+	s.logger.Infof("Service: GetVideoHistory success video_id=%d count=%d", videoID, len(historyV))
 	return resp, nil
 }

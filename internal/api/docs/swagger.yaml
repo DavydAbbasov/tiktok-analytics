@@ -48,6 +48,24 @@ definitions:
         example: 1
         type: integer
     type: object
+  models.VideoHistoryResponse:
+    properties:
+      history_video:
+        items:
+          $ref: '#/definitions/models.VideoStatPoint'
+        type: array
+      video_id:
+        type: integer
+    type: object
+  models.VideoStatPoint:
+    properties:
+      captured_at:
+        type: string
+      earnings:
+        type: number
+      views:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
@@ -129,6 +147,49 @@ paths:
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
       summary: Get latest saved TikTok video stats
+      tags:
+      - videos
+  /api/v1/videos/{tiktok_id}/history:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns saved history of views and earnings for a TikTok video from `video_stats` table.
+        Does NOT call external provider, uses only stored snapshots.
+      parameters:
+      - description: TikTok video ID
+        in: path
+        name: tiktok_id
+        required: true
+        type: string
+      - description: 'Start datetime (ISO8601), inclusive example: 2025-11-20T00:00:00Z'
+        in: query
+        name: from
+        type: string
+      - description: 'End datetime (ISO8601), exclusive example: 2025-11-27T00:00:00Z'
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.VideoHistoryResponse'
+        "400":
+          description: Invalid TikTok ID or invalid date params
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Video or history not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Get historical stats for a TikTok video
       tags:
       - videos
 swagger: "2.0"

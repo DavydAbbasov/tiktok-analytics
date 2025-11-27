@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 	"ttanalytic/internal/models"
 
@@ -241,4 +242,58 @@ func (r *Repository) UpdateVideoAggregates(ctx context.Context, input models.Upd
 
 	r.logger.Infof("Repository: UpdateVideoAggregates finish at:%v", time.Now())
 	return nil
+}
+func (r *Repository) GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) ([]*models.VideoStatPoint, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
+	defer cancel()
+
+	query := `
+        SELECT captured_at, views, earnings
+        FROM video_stats
+        WHERE video_id = $1
+    `
+
+	args := []any{videoID}
+	argPos := 2
+
+	if from != nil {
+		query += fmt.Sprintf(" AND captured_at >= $%d", argPos)
+		args = append(args, *from)
+		argPos++
+	}
+
+	if to != nil {
+		query += fmt.Sprintf(" AND captured_at < $%d", argPos)
+		args = append(args, *to)
+		argPos++
+	}
+
+	query += " ORDER BY captured_at ASC"
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []*models.VideoStatPoint
+
+	for rows.Next() {
+		var v models.VideoStatPoint
+		if err := rows.Scan(
+			&v.CapturedAt,
+			&v.Views,
+			&v.Earnings,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, &v)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	r.logger.Infof("Repository: GetVideoHistory finish at:%v, count=%d", time.Now(), len(result))
+	return result, nil
 }

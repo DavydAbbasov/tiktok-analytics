@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 	"ttanalytic/internal/models"
 
 	"github.com/go-chi/chi/v5"
@@ -13,6 +16,7 @@ import (
 type Service interface {
 	TrackVideo(ctx context.Context, req models.TrackVideoRequest) (models.TrackVideoResponse, error)
 	GetVideo(ctx context.Context, tiktok string) (models.TrackVideoResponse, error)
+	GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) (models.VideoHistoryResponse, error)
 }
 type Logger interface {
 	Errorf(format string, args ...any)
@@ -79,6 +83,92 @@ func (h *Handler) TrackVideo(w http.ResponseWriter, r *http.Request) {
 	h.sendJSON(w, http.StatusOK, resp)
 }
 
+// GetVideo handles GET
+// @Summary     Get latest saved TikTok video stats
+// @Description Returns the last saved views and earnings for a TikTok video
+// @Description from the `videos` table. Does NOT call external provider.
+// @Tags        videos
+// @Accept      json
+// @Produce     json
+// @Param       tiktok_id path string true "TikTok video ID"
+// @Success     200 {object} models.TrackVideoResponse
+// @Failure     400 {object} ErrorResponse "Invalid TikTok ID"
+// @Failure     404 {object} ErrorResponse "Video not found"
+// @Failure     500 {object} ErrorResponse "Internal server error"
+// @Router      /api/v1/videos/{tiktok_id} [get]
+func (h *Handler) GetVideo(w http.ResponseWriter, r *http.Request) {
+	tikTokID := chi.URLParam(r, "tiktok_id")
+	if tikTokID == "" {
+		h.sendError(w, http.StatusBadRequest, "TikTok ID is required", nil)
+		return
+	}
+
+	h.logger.Infof("HTTP GetVideo: incoming tiktok_id=%s", tikTokID)
+
+	resp, err := h.service.GetVideo(r.Context(), tikTokID)
+	if err != nil {
+		h.handleServiceError(w, err)
+		return
+	}
+
+	h.sendJSON(w, http.StatusOK, resp)
+}
+
+// GetVideoHistory handles GET
+// @Summary      Get historical stats for a TikTok video
+// @Description  Returns saved history of views and earnings for a TikTok video from `video_stats` table.
+// @Description  Does NOT call external provider, uses only stored snapshots.
+// @Tags         videos
+// @Accept       json
+// @Produce      json
+// @Param        video_id  path   string  true  "video_id video ID"
+// @Param        from       query  string  false "Start datetime (ISO8601), inclusive example: 2025-11-20T00:00:00Z"
+// @Param        to         query  string  false "End datetime (ISO8601), exclusive example: 2025-11-27T00:00:00Z"
+// @Success      200 {object} models.VideoHistoryResponse
+// @Failure      400 {object} ErrorResponse "Invalid TikTok ID or invalid date params"
+// @Failure      404 {object} ErrorResponse "Video or history not found"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Router       /api/v1/videos/{video_id}/history [get]
+func (h *Handler) GetVideoHistory(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "video_id")
+	if idStr == "" {
+		h.sendError(w, http.StatusBadRequest, "missing video video_id", nil)
+		return
+	}
+
+	videoID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "invalid video video_id", err)
+		return
+	}
+
+	q := r.URL.Query()
+	rawFrom := q.Get("from")
+	rawTo := q.Get("to")
+
+	fromTime, err := parseTimeParam(rawFrom)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "invalid 'from' parameter", err)
+		return
+	}
+
+	toTime, err := parseTimeParam(rawTo)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "invalid 'to' parameter", err)
+		return
+	}
+
+	resp, err := h.service.GetVideoHistory(r.Context(), videoID, fromTime, toTime)
+	if err != nil {
+		h.logger.Errorf("GetVideoHistory: service error: %v", err)
+		h.sendError(w, http.StatusInternalServerError, "failed to get video history", err)
+		return
+	}
+
+	h.sendJSON(w, http.StatusOK, resp)
+}
+
+// helpers
 func (h *Handler) sendJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -120,34 +210,19 @@ func (h *Handler) handleServiceError(w http.ResponseWriter, err error) {
 
 	h.sendError(w, status, message, err)
 }
-
-// GetVideo handles GET
-// @Summary     Get latest saved TikTok video stats
-// @Description Returns the last saved views and earnings for a TikTok video
-// @Description from the `videos` table. Does NOT call external provider.
-// @Tags        videos
-// @Accept      json
-// @Produce     json
-// @Param       tiktok_id path string true "TikTok video ID"
-// @Success     200 {object} models.TrackVideoResponse
-// @Failure     400 {object} ErrorResponse "Invalid TikTok ID"
-// @Failure     404 {object} ErrorResponse "Video not found"
-// @Failure     500 {object} ErrorResponse "Internal server error"
-// @Router      /api/v1/videos/{tiktok_id} [get]
-func (h *Handler) GetVideo(w http.ResponseWriter, r *http.Request) {
-	tikTokID := chi.URLParam(r, "tiktok_id")
-	if tikTokID == "" {
-		h.sendError(w, http.StatusBadRequest, "TikTok ID is required", nil)
-		return
+func parseTimeParam(raw string) (*time.Time, error) {
+	if raw == "" {
+		return nil, nil
 	}
 
-	h.logger.Infof("HTTP GetVideo: incoming tiktok_id=%s", tikTokID)
-
-	resp, err := h.service.GetVideo(r.Context(), tikTokID)
-	if err != nil {
-		h.handleServiceError(w, err)
-		return
+	if t, err := time.Parse(time.RFC3339, raw); err == nil {
+		return &t, nil
 	}
 
-	h.sendJSON(w, http.StatusOK, resp)
+	if t, err := time.Parse("2006-01-02", raw); err == nil {
+		tt := t
+		return &tt, nil
+	}
+
+	return nil, fmt.Errorf("invalid time format")
 }

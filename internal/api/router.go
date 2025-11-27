@@ -47,6 +47,7 @@ func NewRouter(cfg *config.Config, handler *handlers.Handler) *Router {
 		//create or get video
 		r.Post("/videos", handler.TrackVideo)
 		r.Get("/videos/{tiktok_id}", handler.GetVideo)
+		r.Get("/videos/{video_id}/history", handler.GetVideoHistory)
 	})
 
 	//server

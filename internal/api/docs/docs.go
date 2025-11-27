@@ -122,6 +122,68 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/videos/{tiktok_id}/history": {
+            "get": {
+                "description": "Returns saved history of views and earnings for a TikTok video from ` + "`" + `video_stats` + "`" + ` table.\nDoes NOT call external provider, uses only stored snapshots.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "videos"
+                ],
+                "summary": "Get historical stats for a TikTok video",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "TikTok video ID",
+                        "name": "tiktok_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start datetime (ISO8601), inclusive example: 2025-11-20T00:00:00Z",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End datetime (ISO8601), exclusive example: 2025-11-27T00:00:00Z",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.VideoHistoryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid TikTok ID or invalid date params",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Video or history not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -191,6 +253,34 @@ const docTemplate = `{
                 "video_id": {
                     "type": "integer",
                     "example": 1
+                }
+            }
+        },
+        "models.VideoHistoryResponse": {
+            "type": "object",
+            "properties": {
+                "history_video": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VideoStatPoint"
+                    }
+                },
+                "video_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.VideoStatPoint": {
+            "type": "object",
+            "properties": {
+                "captured_at": {
+                    "type": "string"
+                },
+                "earnings": {
+                    "type": "number"
+                },
+                "views": {
+                    "type": "integer"
                 }
             }
         }
