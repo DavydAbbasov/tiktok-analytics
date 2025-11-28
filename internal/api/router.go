@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"ttanalytic/internal/api/handlers"
 	"ttanalytic/internal/config"
 
 	"github.com/go-chi/chi/middleware"
@@ -15,13 +14,19 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+type Handler interface {
+	TrackVideo(w http.ResponseWriter, r *http.Request)
+	GetVideo(w http.ResponseWriter, r *http.Request)
+	GetVideoHistory(w http.ResponseWriter, r *http.Request)
+}
+
 // Router handles HTTP routing
 type Router struct {
 	server   *http.Server
-	handlers *handlers.Handler
+	handlers Handler
 }
 
-func NewRouter(cfg *config.Config, handler *handlers.Handler) *Router {
+func NewRouter(cfg *config.Config, handler Handler) *Router {
 	r := chi.NewRouter()
 
 	// middleware

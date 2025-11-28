@@ -123,7 +123,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/videos/{tiktok_id}/history": {
+        "/api/v1/videos/{video_id}/history": {
             "get": {
                 "description": "Returns saved history of views and earnings for a TikTok video from ` + "`" + `video_stats` + "`" + ` table.\nDoes NOT call external provider, uses only stored snapshots.",
                 "consumes": [
@@ -139,8 +139,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "TikTok video ID",
-                        "name": "tiktok_id",
+                        "description": "video_id video ID",
+                        "name": "video_id",
                         "in": "path",
                         "required": true
                     },
