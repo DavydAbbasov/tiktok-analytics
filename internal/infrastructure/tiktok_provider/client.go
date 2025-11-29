@@ -36,8 +36,6 @@ type Client struct {
 	logger  Logger
 }
 
-var _ provider.TikTokProvider = (*Client)(nil)
-
 type Config struct {
 	BaseURL string
 	APIKey  string
@@ -56,6 +54,7 @@ func NewClient(ctx context.Context, http HTTPClient, cfg Config, logger Logger) 
 		logger:  logger,
 	}
 
+	// // test
 	// if err := c.testConnection(ctx); err != nil {
 	// 	return nil, fmt.Errorf("ensemble connection failed: %w", err)
 	// }
@@ -63,6 +62,57 @@ func NewClient(ctx context.Context, http HTTPClient, cfg Config, logger Logger) 
 	return c, nil
 }
 
+// provider.Provider
+func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*provider.VideoStats, error) {
+	fullURL := c.baseURL
+	fullURL.Path = path.Join(fullURL.Path, "tt/post/info")
+
+	q := fullURL.Query()
+	q.Set("url", videoURL)
+	q.Set("token", c.apiKey)
+	q.Set("new_version", "false")
+	q.Set("download_video", "false")
+	fullURL.RawQuery = q.Encode()
+
+	//saccess - finaly URL
+	c.logger.Infof("ensemble request URL: %s", fullURL.String())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		c.logger.Errorf("ensemble: http request failed url=%s: %v", fullURL.String(), err)
+		return nil, fmt.Errorf("request to ensemble failed: %w", err)
+	}
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			c.logger.Errorf("ensemble: close response body: %v", cerr)
+		}
+	}()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, ErrBadResponse
+	}
+
+	var data EnsemblePostInfoResponse
+	if err := json.Unmarshal(body, &data); err != nil {
+		c.logger.Errorf("ensemble: decode failed url=%s err=%v",
+			fullURL.String(), err)
+		return nil, fmt.Errorf("decode ensemble response: %w", err)
+	}
+
+	return data.ToProviderStats(), nil
+}
+
+// helpers
 func (c *Client) testConnection(ctx context.Context) error {
 	reqURL := c.baseURL
 	reqURL.Path = "/tiktok/test"
@@ -84,55 +134,4 @@ func (c *Client) testConnection(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// реализует provider.Provider
-func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*provider.VideoStats, error) {
-	c.logger.Infof("calling ensemble for url=%s", videoURL)
-
-	fullURL := c.baseURL
-	fullURL.Path = path.Join(fullURL.Path, "tt/post/info")
-
-	q := fullURL.Query()
-	q.Set("url", videoURL)
-	q.Set("token", c.apiKey)
-	q.Set("new_version", "false")
-	q.Set("download_video", "false")
-	fullURL.RawQuery = q.Encode()
-
-	c.logger.Infof("ensemble request URL: %s", fullURL.String())
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL.String(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	c.logger.Infof("ensemble CALL START url=%s", fullURL.String())
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to ensemble failed: %w", err)
-	}
-	c.logger.Infof("ensemble CALL END   url=%s status=%d", fullURL.String(), resp.StatusCode)
-	defer resp.Body.Close()
-
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read body: %w", err)
-	}
-
-	c.logger.Infof("ensemble response status=%d body=%s", resp.StatusCode, string(body))
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad response from ensemble: status=%d", resp.StatusCode)
-	}
-
-	var data EnsemblePostInfoResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, fmt.Errorf("decode ensemble response: %w", err)
-	}
-
-	return data.ToProviderStats(), nil
 }

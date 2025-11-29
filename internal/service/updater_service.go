@@ -79,16 +79,17 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 		default:
 		}
 
-		info, err := u.provider.GetVideoStats(ctx, v.URL)
-		if err != nil {
-			u.logger.Errorf("updater: get info for video ID%s: URL%v", v.TikTokID, v.URL, err)
-			continue
-		}
-
-		// //test without provider
-		// info := struct{ Views int64 }{
-		// 	Views: v.CurrentViews + 10000,
+		//prod
+		// info, err := u.provider.GetVideoStats(ctx, v.URL)
+		// if err != nil {
+		// 	u.logger.Errorf("updater: get info for video ID%s: URL%v", v.TikTokID, v.URL, err)
+		// 	continue
 		// }
+
+		//test without provider
+		info := struct{ Views int64 }{
+			Views: v.CurrentViews + 10000,
+		}
 
 		oldViews := v.CurrentViews
 		newViews := info.Views

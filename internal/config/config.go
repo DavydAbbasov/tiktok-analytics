@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -49,10 +50,20 @@ type UpdaterConfig struct {
 	MinUpdateAge int `yaml:"min_update_age"`
 }
 
+const (
+	envConfigPath     = "CONFIG_PATH"
+	defaultConfigPath = "internal/config/config.yaml"
+)
+
 func ParseConfig() (*Config, error) {
 	var cfg Config
 
-	if err := cleanenv.ReadConfig("internal/config/config.yaml", &cfg); err != nil {
+	path := os.Getenv(envConfigPath) //prod
+	if path == "" {
+		path = defaultConfigPath // local
+	}
+
+	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
 		return nil, fmt.Errorf("read config: %w", err)
 	}
 

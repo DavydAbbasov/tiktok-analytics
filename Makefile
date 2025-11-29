@@ -1,4 +1,4 @@
-.PHONY: build up down logs migrate ps tidy restart swagger
+.PHONY: build up down logs migrate ps tidy restart swagger stop-app db
 
 build:
 	docker compose build
@@ -24,6 +24,11 @@ tidy:
 swagger:
 	swag init -g cmd/tiktok/main.go -o internal/api/docs
 
+stop-app:
+	docker compose stop app migrator
+
+db:
+	docker compose up -d postgres
 restart:
 	$(MAKE) swagger
 	$(MAKE) down

@@ -20,6 +20,7 @@ type Logger interface {
 	Infof(format string, args ...any)
 	Info(args ...any)
 }
+
 type Service struct {
 	repo     Repository
 	provider provider.TikTokProvider
@@ -77,7 +78,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 
 	videoURL := req.URL
 
-	//call to the provider
+	//call the provider
 	stats, err := s.provider.GetVideoStats(ctx, videoURL)
 	if err != nil {
 		s.logger.Errorf("TrackVideo: provider error for %s: %v", videoURL, err)
