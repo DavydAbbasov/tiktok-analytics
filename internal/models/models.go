@@ -35,6 +35,17 @@ type TrackVideoResponse struct {
 	Status          string  `json:"status"          example:"active"`
 }
 
+// domain/db model
+type Video struct {
+	ID              int64
+	TikTokID        string
+	URL             string
+	CurrentViews    int64
+	CurrentEarnings float64
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
 // biuld history video
 type VideoStatPoint struct {
 	CapturedAt time.Time `json:"captured_at"`
@@ -46,17 +57,6 @@ type VideoStatPoint struct {
 type VideoHistoryResponse struct {
 	VideoID      int64            `json:"video_id"`
 	HistoryVideo []VideoStatPoint `json:"history_video"`
-}
-
-// domain/db model
-type Video struct {
-	ID              int64
-	TikTokID        string
-	URL             string
-	CurrentViews    int64
-	CurrentEarnings float64
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
 }
 
 // to create a video recording
