@@ -15,6 +15,7 @@ type UpdaterRepository interface {
 	AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error
 	UpdateVideoAggregates(ctx context.Context, input models.UpdateVideoAggregatesInput) error
 }
+
 type UpdaterConfig struct {
 	Interval     time.Duration
 	BatchSize    int
@@ -44,8 +45,6 @@ func NewUpdaterService(
 	}
 }
 func (u *UpdaterService) Run(ctx context.Context) {
-	u.logger.Info("Updater: run loop started")
-
 	ticker := time.NewTicker(u.cfg.Interval)
 	defer ticker.Stop()
 
@@ -86,7 +85,7 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 		// 	continue
 		// }
 
-		//test without provider
+		//test - without provider
 		info := struct{ Views int64 }{
 			Views: v.CurrentViews + 10000,
 		}
