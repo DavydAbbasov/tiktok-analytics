@@ -52,7 +52,7 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("init repository: %w", err)
 	}
 
-	if err := a.initProvider(ctx); err != nil {
+	if err := a.initProvider(); err != nil {
 		return fmt.Errorf("init provider: %w", err)
 	}
 
@@ -161,7 +161,7 @@ func (a *Application) initService() error {
 
 	return nil
 }
-func (a *Application) initProvider(ctx context.Context) error {
+func (a *Application) initProvider() error {
 	log := a.logger
 
 	httpCli := &http.Client{
@@ -173,7 +173,7 @@ func (a *Application) initProvider(ctx context.Context) error {
 		APIKey:  a.cfg.Provider.Token,
 	}
 
-	prov, err := tiktokprovider.NewClient(ctx, httpCli, cfg, log)
+	prov, err := tiktokprovider.NewClient(httpCli, cfg, log)
 	if err != nil {
 		return err
 	}

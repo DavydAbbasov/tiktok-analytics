@@ -21,12 +21,8 @@ func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 "data": [
     {
       "aweme_id": "1234567890",
-      "desc": "test video",
       "statistics": {
-        "play_count": 12345,
-        "digg_count": 10,
-        "comment_count": 5,
-        "share_count": 2
+        "play_count": 12345
       }
     }
   ]
@@ -56,12 +52,14 @@ func TestClient_GetVideoStats_UsesSingleHTTPCallAndParses(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	c, err := NewClient(ctx, mockHTTP, cfg, dummyLogger{})
+
+	c, err := NewClient(mockHTTP, cfg, dummyLogger{})
 	if err != nil {
 		t.Fatalf("NewClient error: %v", err)
 	}
 
 	videoURL := "https://www.tiktok.com/@user/video/123"
+
 	stats, err := c.GetVideoStats(ctx, videoURL)
 	if err != nil {
 		t.Fatalf("GetVideoStats returned error: %v", err)

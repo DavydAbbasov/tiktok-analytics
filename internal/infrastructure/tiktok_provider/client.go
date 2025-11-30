@@ -41,7 +41,7 @@ type Config struct {
 	APIKey  string
 }
 
-func NewClient(ctx context.Context, http HTTPClient, cfg Config, logger Logger) (*Client, error) {
+func NewClient(http HTTPClient, cfg Config, logger Logger) (*Client, error) {
 	u, err := url.Parse(cfg.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid ensemble base url: %w", err)
@@ -54,7 +54,7 @@ func NewClient(ctx context.Context, http HTTPClient, cfg Config, logger Logger) 
 		logger:  logger,
 	}
 
-	// // test
+	// // health-check (+ctx)
 	// if err := c.testConnection(ctx); err != nil {
 	// 	return nil, fmt.Errorf("ensemble connection failed: %w", err)
 	// }
@@ -99,6 +99,8 @@ func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*provider.
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		c.logger.Errorf("ensemble: bad status url=%s status=%d body=%s",
+			fullURL.String(), resp.StatusCode, string(body))
 		return nil, ErrBadResponse
 	}
 
@@ -112,7 +114,7 @@ func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*provider.
 	return data.ToProviderStats(), nil
 }
 
-// helpers
+// helpers health-check
 func (c *Client) testConnection(ctx context.Context) error {
 	reqURL := c.baseURL
 	reqURL.Path = "/tiktok/test"
@@ -127,9 +129,14 @@ func (c *Client) testConnection(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to ensemble: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			c.logger.Errorf("ensemble: close response body in testConnection: %v", cerr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
+		c.logger.Errorf("ensemble: testConnection bad status=%d", resp.StatusCode)
 		return ErrInvalidToken
 	}
 
