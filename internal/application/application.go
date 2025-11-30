@@ -152,15 +152,7 @@ func (a *Application) initRepository() error {
 
 	return nil
 }
-func (a *Application) initService() error {
-	a.service = service.NewService(
-		a.repo,
-		a.provider,
-		a.logger,
-	)
 
-	return nil
-}
 func (a *Application) initProvider() error {
 	log := a.logger
 
@@ -181,15 +173,16 @@ func (a *Application) initProvider() error {
 	a.provider = prov
 	return nil
 }
-func (a *Application) initRouter() error {
-	h := handlers.NewHandler(
-		a.service,
+func (a *Application) initService() error {
+	a.service = service.NewService(
+		a.repo,
+		a.provider,
 		a.logger,
 	)
 
-	a.router = api.NewRouter(a.cfg, h)
 	return nil
 }
+
 func (a *Application) initUpdater() error {
 	updaterCfg := service.UpdaterConfig{
 		Interval:     time.Duration(a.cfg.Updater.Interval) * time.Second,
@@ -206,6 +199,16 @@ func (a *Application) initUpdater() error {
 	)
 	return nil
 }
+func (a *Application) initRouter() error {
+	h := handlers.NewHandler(
+		a.service,
+		a.logger,
+	)
+
+	a.router = api.NewRouter(a.cfg, h)
+	return nil
+}
+
 func (a *Application) startHTTPServer() {
 	a.wg.Add(1)
 
