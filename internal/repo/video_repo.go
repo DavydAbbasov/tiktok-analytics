@@ -46,9 +46,6 @@ func NewRepository(db PgDriver, logger Logger, timeoutSec int) *Repository {
 
 // FindVideoByTikTokID fiend video - returns video with the db
 func (r *Repository) FindVideoByTikTokID(ctx context.Context, tikTokID string) (*models.Video, error) {
-	start := time.Now()
-	r.logger.Infof("Repository: FindVideoByTikTokID start at:%v", start)
-
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
@@ -82,17 +79,11 @@ func (r *Repository) FindVideoByTikTokID(ctx context.Context, tikTokID string) (
 		return nil, err
 	}
 
-	finish := time.Now()
-	r.logger.Infof("Repository: FindVideoByTikTokID finish at:%v", finish)
-
 	return &v, nil
 }
 
 // CreateVideo creates a new video in the database
 func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoInput) (*models.Video, error) {
-	start := time.Now()
-	r.logger.Infof("Repository: CreateVideo start work:%v", start)
-
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
@@ -131,14 +122,9 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 		return nil, err
 	}
 
-	r.logger.Infof("Repository: CreateVideo finish at:%v", time.Now())
-
 	return &v, nil
 }
 func (r *Repository) AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error {
-	start := time.Now()
-	r.logger.Infof("Repository: AppendVideoStats start at:%v, video_id=%d", start, input.VideoID)
-
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
@@ -157,12 +143,9 @@ func (r *Repository) AppendVideoStats(ctx context.Context, input models.CreateVi
 		return err
 	}
 
-	r.logger.Infof("Repository: AppendVideoStats finish at:%v", time.Now())
 	return nil
 }
 func (r *Repository) ListVideosForUpdate(ctx context.Context, minupdateage time.Duration, limit int) ([]*models.Video, error) {
-	r.logger.Infof("Repository: ListVideosForUpdate minUpdateAge=%v limit=%d", minupdateage, limit)
-
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
@@ -212,13 +195,9 @@ func (r *Repository) ListVideosForUpdate(ctx context.Context, minupdateage time.
 		return nil, err
 	}
 
-	r.logger.Infof("Repository: ListVideosForUpdate finish at:%v, count=%d", time.Now(), len(result))
 	return result, nil
 }
 func (r *Repository) UpdateVideoAggregates(ctx context.Context, input models.UpdateVideoAggregatesInput) error {
-	start := time.Now()
-	r.logger.Infof("Repository: UpdateVideoAggregates start at:%v, video_id=%d", start, input.VideoID)
-
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
@@ -240,7 +219,6 @@ func (r *Repository) UpdateVideoAggregates(ctx context.Context, input models.Upd
 		return err
 	}
 
-	r.logger.Infof("Repository: UpdateVideoAggregates finish at:%v", time.Now())
 	return nil
 }
 func (r *Repository) GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) ([]*models.VideoStatPoint, error) {
@@ -294,6 +272,5 @@ func (r *Repository) GetVideoHistory(ctx context.Context, videoID int64, from, t
 		return nil, err
 	}
 
-	r.logger.Infof("Repository: GetVideoHistory finish at:%v, count=%d", time.Now(), len(result))
 	return result, nil
 }
