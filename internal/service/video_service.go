@@ -38,6 +38,10 @@ func (e EarningsConfig) Calc(views int64) float64 {
 	return float64(views) / float64(e.Per) * e.Rate
 }
 
+type initialVideoState struct {
+	Views    int64
+	Earnings float64
+}
 type Service struct {
 	repo        Repository
 	provider    TikTokProvider
@@ -47,11 +51,13 @@ type Service struct {
 
 func NewService(repo Repository, prov TikTokProvider, earningsCfg EarningsConfig, logger Logger) *Service {
 	return &Service{
-		repo:     repo,
-		provider: prov,
-		logger:   logger,
+		repo:        repo,
+		provider:    prov,
+		earningsCfg: earningsCfg,
+		logger:      logger,
 	}
 }
+
 func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) (models.TrackVideoResponse, error) {
 	//try to find existing video
 	video, err := s.repo.FindVideoByTikTokID(ctx, req.TikTokID)
@@ -66,17 +72,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	if video != nil {
 		s.logger.Infof("TrackVideo: video %s found in DB, not calling provider", req.TikTokID)
 
-		return models.TrackVideoResponse{
-			VideoID:         video.ID,
-			TikTokID:        video.TikTokID,
-			URL:             video.URL,
-			CurrentViews:    video.CurrentViews,
-			CurrentEarnings: video.CurrentEarnings,
-			Currency:        CurrencyUSD,
-			LastUpdatedAt:   video.UpdatedAt.UTC().Format(time.RFC3339),
-			CreatedAt:       video.CreatedAt.UTC().Format(time.RFC3339),
-			Status:          "active",
-		}, nil
+		return s.buildTrackVideoResponse(video), nil
 	}
 
 	//call the provider
@@ -87,15 +83,14 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	}
 
 	//calculate
-	views := stats.Views
-	earnings := s.calculateEarnings(stats.Views)
+	initState := s.calculateInitialVideoState(stats)
 
 	//create video in db
 	input := models.CreateVideoInput{
 		TikTokID:        req.TikTokID,
 		URL:             req.URL,
-		CurrentViews:    views,
-		CurrentEarnings: earnings,
+		CurrentViews:    initState.Views,
+		CurrentEarnings: initState.Earnings,
 	}
 
 	//create new video in db
@@ -105,32 +100,44 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		return models.TrackVideoResponse{}, err
 	}
 
+	statInput := models.CreateVideoStatsInput{
+		VideoID:  video.ID,
+		Views:    initState.Views,
+		Earnings: initState.Earnings,
+	}
+
 	//write in jurnal
-	if err := s.repo.AppendVideoStats(ctx,
-		models.CreateVideoStatsInput{
-			VideoID:  video.ID,
-			Views:    views,
-			Earnings: earnings,
-		}); err != nil {
+	if err := s.repo.AppendVideoStats(ctx, statInput); err != nil {
 		s.logger.Errorf("Service: TrackVideo failed to append stats for video_id=%d: %v", video.ID, err)
 		return models.TrackVideoResponse{}, err
 	}
-
 	//build response
-	return models.TrackVideoResponse{
-		VideoID:         video.ID,
-		TikTokID:        video.TikTokID,
-		URL:             video.URL,
-		CurrentViews:    views,
-		CurrentEarnings: earnings,
-		Currency:        CurrencyUSD,
-		LastUpdatedAt:   video.UpdatedAt.UTC().Format(time.RFC3339),
-		CreatedAt:       video.CreatedAt.UTC().Format(time.RFC3339),
-		Status:          "active",
-	}, nil
+	return s.buildTrackVideoResponse(video), nil
 }
 func (s *Service) calculateEarnings(views int64) float64 {
 	return s.earningsCfg.Calc(views)
+}
+func (s *Service) calculateInitialVideoState(stats *models.VideoStats) initialVideoState {
+	views := stats.Views
+	earnings := s.calculateEarnings(views)
+
+	return initialVideoState{
+		Views:    views,
+		Earnings: earnings,
+	}
+}
+func (s *Service) buildTrackVideoResponse(v *models.Video) models.TrackVideoResponse {
+	return models.TrackVideoResponse{
+		VideoID:         v.ID,
+		TikTokID:        v.TikTokID,
+		URL:             v.URL,
+		CurrentViews:    v.CurrentViews,
+		CurrentEarnings: v.CurrentEarnings,
+		Currency:        CurrencyUSD,
+		LastUpdatedAt:   v.UpdatedAt.UTC().Format(time.RFC3339),
+		CreatedAt:       v.CreatedAt.UTC().Format(time.RFC3339),
+		Status:          "active",
+	}
 }
 
 func (s *Service) GetVideo(ctx context.Context, tikTokID string) (models.TrackVideoResponse, error) {
