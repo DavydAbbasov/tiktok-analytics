@@ -48,7 +48,7 @@ func NewRouter(cfg *config.Config, handler Handler) *Router {
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	//chi router
-	r.Route("/api/v1", func(r chi.Router) {
+	r.Route("/api", func(r chi.Router) {
 		//create or get video
 		r.Post("/videos", handler.TrackVideo)
 		r.Get("/videos/{tiktok_id}", handler.GetVideo)

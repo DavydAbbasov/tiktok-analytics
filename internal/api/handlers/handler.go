@@ -59,7 +59,7 @@ type ErrorResponse struct {
 // @Failure     404 {object} ErrorResponse "Video not found on TikTok"
 // @Failure     429 {object} ErrorResponse "Provider rate limit"
 // @Failure     500 {object} ErrorResponse "Internal server error"
-// @Router      /api/v1/videos [post]
+// @Router      /api/videos [post]
 func (h *Handler) TrackVideo(w http.ResponseWriter, r *http.Request) {
 	var req models.TrackVideoRequest
 
@@ -95,7 +95,7 @@ func (h *Handler) TrackVideo(w http.ResponseWriter, r *http.Request) {
 // @Failure     400 {object} ErrorResponse "Invalid TikTok ID"
 // @Failure     404 {object} ErrorResponse "Video not found"
 // @Failure     500 {object} ErrorResponse "Internal server error"
-// @Router      /api/v1/videos/{tiktok_id} [get]
+// @Router      /api/videos/{tiktok_id} [get]
 func (h *Handler) GetVideo(w http.ResponseWriter, r *http.Request) {
 	tikTokID := chi.URLParam(r, "tiktok_id")
 	if tikTokID == "" {
@@ -128,11 +128,11 @@ func (h *Handler) GetVideo(w http.ResponseWriter, r *http.Request) {
 // @Failure      400 {object} ErrorResponse "Invalid TikTok ID or invalid date params"
 // @Failure      404 {object} ErrorResponse "Video or history not found"
 // @Failure      500 {object} ErrorResponse "Internal server error"
-// @Router       /api/v1/videos/{video_id}/history [get]
+// @Router       /api/videos/{video_id}/history [get]
 func (h *Handler) GetVideoHistory(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "video_id")
 	if idStr == "" {
-		h.sendError(w, http.StatusBadRequest, "missing video video_id", nil)
+		h.sendError(w, http.StatusBadRequest, "missing  video_id", nil)
 		return
 	}
 
@@ -160,8 +160,7 @@ func (h *Handler) GetVideoHistory(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.service.GetVideoHistory(r.Context(), videoID, fromTime, toTime)
 	if err != nil {
-		h.logger.Errorf("GetVideoHistory: service error: %v", err)
-		h.sendError(w, http.StatusInternalServerError, "failed to get video history", err)
+		h.handleServiceError(w, err)
 		return
 	}
 
@@ -178,18 +177,14 @@ func (h *Handler) sendJSON(w http.ResponseWriter, status int, data interface{}) 
 }
 
 func (h *Handler) sendError(w http.ResponseWriter, status int, message string, err error) {
-	if err != nil {
-		h.logger.Errorf("%s: %v", message, err)
-	} else {
-		h.logger.Errorf("%s", message)
-	}
-
 	resp := ErrorResponse{
 		Error: message,
 	}
-
 	if err != nil {
+		h.logger.Errorf("%s: %v", message, err)
 		resp.Message = err.Error()
+	} else {
+		h.logger.Warnf("%s", message)
 	}
 
 	h.sendJSON(w, status, resp)
@@ -215,14 +210,12 @@ func parseTimeParam(raw string) (*time.Time, error) {
 		return nil, nil
 	}
 
-	if t, err := time.Parse(time.RFC3339, raw); err == nil {
-		return &t, nil
+	timestampInt, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse timestamp value: %w", models.ErrNotFound)
 	}
 
-	if t, err := time.Parse("2006-01-02", raw); err == nil {
-		tt := t
-		return &tt, nil
-	}
+	timestamp := time.Unix(timestampInt, 0).UTC()
 
-	return nil, fmt.Errorf("invalid time format")
+	return &timestamp, nil
 }
