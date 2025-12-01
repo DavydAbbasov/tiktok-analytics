@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 	"ttanalytic/internal/models"
 )
 
@@ -33,12 +34,16 @@ type Client struct {
 	client  HTTPClient
 	baseURL url.URL
 	apiKey  string
+	cfg     Config
 	logger  Logger
 }
 
 type Config struct {
 	BaseURL string
 	APIKey  string
+
+	MaxRetriesCount int
+	RetryTimeout    time.Duration
 }
 
 func NewClient(http HTTPClient, cfg Config, logger Logger) (*Client, error) {
@@ -51,6 +56,7 @@ func NewClient(http HTTPClient, cfg Config, logger Logger) (*Client, error) {
 		client:  http,
 		baseURL: *u,
 		apiKey:  cfg.APIKey,
+		cfg:     cfg,
 		logger:  logger,
 	}
 
@@ -62,8 +68,47 @@ func NewClient(http HTTPClient, cfg Config, logger Logger) (*Client, error) {
 	return c, nil
 }
 
-// provider.Provider
+// retries
 func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*models.VideoStats, error) {
+	if c.cfg.MaxRetriesCount <= 0 {
+		c.cfg.MaxRetriesCount = 1
+	}
+	var lastErr error
+
+	for attempt := 1; attempt <= c.cfg.MaxRetriesCount; attempt++ {
+		stats, err := c.getVideoStats(ctx, videoURL)
+		if err == nil {
+			if attempt > 1 {
+				c.logger.Infof("ensemble: success on attempt %d", attempt)
+			}
+			return stats, nil
+		}
+
+		c.logger.Warnf("ensemble: attempt %d/%d failed: %v", attempt, c.cfg.MaxRetriesCount, err)
+
+		if errors.Is(err, ErrBadRequest) || errors.Is(err, ErrInvalidToken) {
+			return nil, err
+		}
+
+		lastErr = err
+
+		if attempt == c.cfg.MaxRetriesCount {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(c.cfg.RetryTimeout):
+		}
+	}
+
+	return nil, fmt.Errorf("ensemble: all retries failed: %w", lastErr)
+
+}
+
+// Provider
+func (c *Client) getVideoStats(ctx context.Context, videoURL string) (*models.VideoStats, error) {
 	fullURL := c.baseURL
 	fullURL.Path = path.Join(fullURL.Path, "tt/post/info")
 

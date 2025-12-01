@@ -147,12 +147,14 @@ func (a *Application) initProvider() error {
 	log := a.logger
 
 	httpCli := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: time.Duration(a.cfg.Provider.TimeoutSec) * time.Second,
 	}
 
 	cfg := tiktokprovider.Config{
-		BaseURL: a.cfg.Provider.URL,
-		APIKey:  a.cfg.Provider.Token,
+		BaseURL:         a.cfg.Provider.URL,
+		APIKey:          a.cfg.Provider.Token,
+		MaxRetriesCount: a.cfg.Provider.MaxRetriesCount,
+		RetryTimeout:    a.cfg.Provider.RetryTimeout,
 	}
 
 	prov, err := tiktokprovider.NewClient(httpCli, cfg, log)

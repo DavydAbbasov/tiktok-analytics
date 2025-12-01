@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -35,9 +36,12 @@ type SQLDataBase struct {
 }
 
 type ProviderConfig struct {
-	Type  string `yaml:"type"  env:"PROVIDER_TYPE"`
-	URL   string `yaml:"url"   env:"PROVIDER_URL"`
-	Token string `yaml:"token" env:"PROVIDER_TOKEN"`
+	Type            string        `yaml:"type"  env:"PROVIDER_TYPE" env-required:"true"`
+	URL             string        `yaml:"url"   env:"PROVIDER_URL" env-required:"true"`
+	Token           string        `yaml:"token" env:"PROVIDER_TOKEN" env-required:"true"`
+	TimeoutSec      int           `yaml:"timeoutSec"`
+	MaxRetriesCount int           `yaml:"max_retries" env:"ENSEMBLE_MAX_RETRIES" env-default:"3"`
+	RetryTimeout    time.Duration `yaml:"retry_timeout" env:"ENSEMBLE_RETRY_TIMEOUT" env-default:"2s"`
 }
 
 type EarningsConfig struct {

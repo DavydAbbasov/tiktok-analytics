@@ -20,6 +20,9 @@ provider:
   type: "ensemble"
   url: "https://ensembledata.com/apis"
   token: ""
+  timeoutSec: 10 # HTTP client timeout
+  max_retries: 3 # attempts
+  retry_timeout: 2s # pause
 
 earnings:
   rate: 0.10 # dollars
