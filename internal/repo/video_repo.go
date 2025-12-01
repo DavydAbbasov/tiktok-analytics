@@ -206,6 +206,7 @@ func (r *Repository) UpdateVideoAggregates(ctx context.Context, input models.Upd
         SET
             current_views    = $1,
             current_earnings = $2
+			    updated_at  = NOW()
         WHERE id = $3
     `
 
