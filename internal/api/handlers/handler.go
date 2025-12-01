@@ -122,8 +122,8 @@ func (h *Handler) GetVideo(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        video_id  path   string  true  "video_id video ID"
-// @Param        from       query  string  false "Start datetime (ISO8601), inclusive example: 2025-11-20T00:00:00Z"
-// @Param        to         query  string  false "End datetime (ISO8601), exclusive example: 2025-11-27T00:00:00Z"
+// @Param        from      query  int64  false "Start time (unix seconds), inclusive. Example: 1732060800"
+// @Param        to        query  int64  false "End time (unix seconds), exclusive. Example: 1732665600"
 // @Success      200 {object} models.VideoHistoryResponse
 // @Failure      400 {object} ErrorResponse "Invalid TikTok ID or invalid date params"
 // @Failure      404 {object} ErrorResponse "Video or history not found"

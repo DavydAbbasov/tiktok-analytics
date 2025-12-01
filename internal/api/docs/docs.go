@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/videos": {
+        "/api/videos": {
             "post": {
                 "description": "If the video is not yet tracked, the service:\n1) validates the URL/ID,\n2) fetches fresh stats from the provider,\n3) creates a new video record in the DB and writes the first stats snapshot.\nIf the video is already tracked, the service DOES NOT call the provider.\nIt returns the latest saved views and earnings from the ` + "`" + `videos` + "`" + ` table\nand also appends a new row to the hourly stats journal.",
                 "consumes": [
@@ -73,7 +73,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/videos/{tiktok_id}": {
+        "/api/videos/{tiktok_id}": {
             "get": {
                 "description": "Returns the last saved views and earnings for a TikTok video\nfrom the ` + "`" + `videos` + "`" + ` table. Does NOT call external provider.",
                 "consumes": [
@@ -123,7 +123,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/videos/{video_id}/history": {
+        "/api/videos/{video_id}/history": {
             "get": {
                 "description": "Returns saved history of views and earnings for a TikTok video from ` + "`" + `video_stats` + "`" + ` table.\nDoes NOT call external provider, uses only stored snapshots.",
                 "consumes": [
@@ -145,14 +145,16 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Start datetime (ISO8601), inclusive example: 2025-11-20T00:00:00Z",
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Start time (unix seconds), inclusive. Example: 1732060800",
                         "name": "from",
                         "in": "query"
                     },
                     {
-                        "type": "string",
-                        "description": "End datetime (ISO8601), exclusive example: 2025-11-27T00:00:00Z",
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "End time (unix seconds), exclusive. Example: 1732665600",
                         "name": "to",
                         "in": "query"
                     }
