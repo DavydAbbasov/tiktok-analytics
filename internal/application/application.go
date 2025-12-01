@@ -11,6 +11,7 @@ import (
 	"ttanalytic/internal/api/handlers"
 	"ttanalytic/internal/config"
 	pgprovider "ttanalytic/internal/infrastructure"
+	"ttanalytic/internal/infrastructure/dbtx"
 	tiktokprovider "ttanalytic/internal/infrastructure/tiktok_provider"
 
 	"ttanalytic/internal/repo"
@@ -20,15 +21,16 @@ import (
 )
 
 type Application struct {
-	cfg      *config.Config
-	logger   *zap.SugaredLogger
-	db       *pgprovider.Provider
-	repo     *repo.Repository
-	service  handlers.Service
-	updater  *service.UpdaterService
-	provider service.TikTokProvider
-	router   *api.Router
-	wg       sync.WaitGroup
+	cfg        *config.Config
+	logger     *zap.SugaredLogger
+	db         *pgprovider.Provider
+	repo       *repo.Repository
+	service    handlers.Service
+	updater    *service.UpdaterService
+	transactor dbtx.Transactor
+	provider   service.TikTokProvider
+	router     *api.Router
+	wg         sync.WaitGroup
 }
 
 func NewApplication() *Application {
@@ -45,6 +47,10 @@ func (a *Application) Start(ctx context.Context) error {
 
 	if err := a.initDatabase(ctx); err != nil {
 		return fmt.Errorf("init database: %w", err)
+	}
+
+	if err := a.initTransactor(); err != nil {
+		return fmt.Errorf("init transactor: %w", err)
 	}
 
 	if err := a.initRepository(); err != nil {
@@ -133,6 +139,11 @@ func (a *Application) initDatabase(ctx context.Context) error {
 
 	return nil
 }
+func (a *Application) initTransactor() error {
+	a.transactor = dbtx.NewTransactor(a.db.DB())
+	return nil
+}
+
 func (a *Application) initRepository() error {
 	a.repo = repo.NewRepository(
 		a.db.DB(),
@@ -175,6 +186,7 @@ func (a *Application) initService() error {
 		a.provider,
 		earnings,
 		a.logger,
+		a.transactor,
 	)
 
 	return nil
@@ -193,6 +205,7 @@ func (a *Application) initUpdater(ctx context.Context) error {
 		a.logger,
 		updaterCfg,
 		a.cfg.Earnings,
+		a.transactor,
 	)
 
 	a.wg.Add(1)

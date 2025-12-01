@@ -26,6 +26,7 @@ type UpdaterService struct {
 	logger      Logger
 	cfg         UpdaterConfig
 	earningsCfg config.EarningsConfig
+	transactor  Transactor
 }
 
 func NewUpdaterService(
@@ -34,6 +35,7 @@ func NewUpdaterService(
 	logger Logger,
 	cfg UpdaterConfig,
 	earningsCfg config.EarningsConfig,
+	transactor Transactor,
 ) *UpdaterService {
 	return &UpdaterService{
 		repo:        repo,
@@ -41,6 +43,7 @@ func NewUpdaterService(
 		logger:      logger,
 		cfg:         cfg,
 		earningsCfg: earningsCfg,
+		transactor:  transactor,
 	}
 }
 func (u *UpdaterService) Run(ctx context.Context) {
@@ -88,13 +91,21 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 			continue
 		}
 
-		if err := u.repo.AppendVideoStats(ctx, statInput); err != nil {
-			u.logger.Errorf("updater: create stat for video %d: %v", video.ID, err)
-			continue
-		}
+		err = u.transactor.WithinTransaction(ctx, func(txCtx context.Context) error {
+			if err := u.repo.AppendVideoStats(txCtx, statInput); err != nil {
+				u.logger.Errorf("updater: create stat for video %d: %v", video.ID, err)
+				return err
+			}
 
-		if err := u.repo.UpdateVideoAggregates(ctx, aggInput); err != nil {
-			u.logger.Errorf("updater: update aggregates for video %d: %v", video.ID, err)
+			if err := u.repo.UpdateVideoAggregates(txCtx, aggInput); err != nil {
+				u.logger.Errorf("updater: update aggregates for video %d: %v", video.ID, err)
+				return err
+			}
+
+			return nil
+		})
+		if err != nil {
+			u.logger.Errorf("updater: transaction failed for video %d: %v", video.ID, err)
 			continue
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"ttanalytic/internal/infrastructure/dbtx"
 	"ttanalytic/internal/models"
 
 	"github.com/jackc/pgx/v5"
@@ -18,6 +19,11 @@ type PgDriver interface {
 	QueryRow(ctx context.Context, query string, args ...interface{}) pgx.Row
 	Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error)
 	Close()
+}
+type dbRunner interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 // Logger is the interface for logging
@@ -33,6 +39,13 @@ type Repository struct {
 	db         PgDriver
 	logger     Logger
 	timeoutSec int
+}
+
+func (r *Repository) getDB(ctx context.Context) dbRunner {
+	if tx, ok := dbtx.TxFromContext(ctx); ok {
+		return tx
+	}
+	return r.db
 }
 
 // NewRepository creates a new repository instance
@@ -87,6 +100,8 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
+	db := r.getDB(ctx)
+
 	query := `
     INSERT INTO videos (tiktok_id, url, current_views, current_earnings)
     VALUES ($1, $2, $3, $4)
@@ -101,7 +116,7 @@ func (r *Repository) CreateVideo(ctx context.Context, input models.CreateVideoIn
 `
 
 	var v models.Video
-	err := r.db.QueryRow(
+	err := db.QueryRow(
 		ctx,
 		query,
 		input.TikTokID,
@@ -128,12 +143,14 @@ func (r *Repository) AppendVideoStats(ctx context.Context, input models.CreateVi
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
+	db := r.getDB(ctx)
+
 	query := `
         INSERT INTO video_stats  (video_id, views, earnings)
         VALUES ($1, $2, $3)
     `
 
-	_, err := r.db.Exec(ctx, query,
+	_, err := db.Exec(ctx, query,
 		input.VideoID,
 		input.Views,
 		input.Earnings,
@@ -201,6 +218,8 @@ func (r *Repository) UpdateVideoAggregates(ctx context.Context, input models.Upd
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
+	db := r.getDB(ctx)
+
 	query := `
         UPDATE videos
         SET
@@ -210,7 +229,7 @@ func (r *Repository) UpdateVideoAggregates(ctx context.Context, input models.Upd
         WHERE id = $3
     `
 
-	_, err := r.db.Exec(ctx, query,
+	_, err := db.Exec(ctx, query,
 		input.Views,
 		input.Earnings,
 		input.VideoID,
@@ -225,6 +244,8 @@ func (r *Repository) UpdateVideoAggregates(ctx context.Context, input models.Upd
 func (r *Repository) GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) ([]*models.VideoStatPoint, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
+
+	db := r.getDB(ctx)
 
 	query := `
         SELECT captured_at, views, earnings
@@ -249,7 +270,7 @@ func (r *Repository) GetVideoHistory(ctx context.Context, videoID int64, from, t
 
 	query += " ORDER BY captured_at ASC"
 
-	rows, err := r.db.Query(ctx, query, args...)
+	rows, err := db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

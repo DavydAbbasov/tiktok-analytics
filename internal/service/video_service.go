@@ -20,6 +20,9 @@ type Repository interface {
 type TikTokProvider interface {
 	GetVideoStats(ctx context.Context, videoURL string) (*models.VideoStats, error)
 }
+type Transactor interface {
+	WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
 type Logger interface {
 	Errorf(format string, args ...any)
 	Warnf(format string, args ...any)
@@ -47,14 +50,16 @@ type Service struct {
 	provider    TikTokProvider
 	earningsCfg EarningsConfig
 	logger      Logger
+	transactor  Transactor
 }
 
-func NewService(repo Repository, prov TikTokProvider, earningsCfg EarningsConfig, logger Logger) *Service {
+func NewService(repo Repository, prov TikTokProvider, earningsCfg EarningsConfig, logger Logger, transactor Transactor) *Service {
 	return &Service{
 		repo:        repo,
 		provider:    prov,
 		earningsCfg: earningsCfg,
 		logger:      logger,
+		transactor:  transactor,
 	}
 }
 
@@ -71,7 +76,6 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	//video already exists
 	if video != nil {
 		s.logger.Infof("TrackVideo: video %s found in DB, not calling provider", req.TikTokID)
-
 		return s.buildTrackVideoResponse(video), nil
 	}
 
@@ -85,38 +89,50 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	//calculate
 	initState := s.calculateInitialVideoState(stats)
 
-	//create video in db
-	input := models.CreateVideoInput{
-		TikTokID:        req.TikTokID,
-		URL:             req.URL,
-		CurrentViews:    initState.Views,
-		CurrentEarnings: initState.Earnings,
-	}
+	var createdVideo *models.Video
 
-	//create new video in db
-	video, err = s.repo.CreateVideo(ctx, input)
+	err = s.transactor.WithinTransaction(ctx, func(txCtx context.Context) error {
+		// create video in db
+		input := models.CreateVideoInput{
+			TikTokID:        req.TikTokID,
+			URL:             req.URL,
+			CurrentViews:    initState.Views,
+			CurrentEarnings: initState.Earnings,
+		}
+
+		video, err := s.repo.CreateVideo(txCtx, input)
+		if err != nil {
+			s.logger.Errorf("TrackVideo: CreateVideo(%s) error: %v", req.TikTokID, err)
+			return err
+		}
+
+		createdVideo = video
+
+		// write first point in journal
+		statInput := models.CreateVideoStatsInput{
+			VideoID:  video.ID,
+			Views:    initState.Views,
+			Earnings: initState.Earnings,
+		}
+
+		if err := s.repo.AppendVideoStats(txCtx, statInput); err != nil {
+			s.logger.Errorf("Service: TrackVideo failed to append stats for video_id=%d: %v", video.ID, err)
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		s.logger.Errorf("TrackVideo: CreateVideo(%s) error: %v", req.TikTokID, err)
 		return models.TrackVideoResponse{}, err
 	}
 
-	statInput := models.CreateVideoStatsInput{
-		VideoID:  video.ID,
-		Views:    initState.Views,
-		Earnings: initState.Earnings,
-	}
-
-	//write in jurnal
-	if err := s.repo.AppendVideoStats(ctx, statInput); err != nil {
-		s.logger.Errorf("Service: TrackVideo failed to append stats for video_id=%d: %v", video.ID, err)
-		return models.TrackVideoResponse{}, err
-	}
 	//build response
-	return s.buildTrackVideoResponse(video), nil
+	return s.buildTrackVideoResponse(createdVideo), nil
 }
+
 func (s *Service) calculateEarnings(views int64) float64 {
 	return s.earningsCfg.Calc(views)
 }
+
 func (s *Service) calculateInitialVideoState(stats *models.VideoStats) initialVideoState {
 	views := stats.Views
 	earnings := s.calculateEarnings(views)
@@ -126,6 +142,7 @@ func (s *Service) calculateInitialVideoState(stats *models.VideoStats) initialVi
 		Earnings: earnings,
 	}
 }
+
 func (s *Service) buildTrackVideoResponse(v *models.Video) models.TrackVideoResponse {
 	return models.TrackVideoResponse{
 		VideoID:         v.ID,
