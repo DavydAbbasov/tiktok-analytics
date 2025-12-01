@@ -70,63 +70,64 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 		return nil
 	}
 
-	for _, v := range videos {
-		select {
-		case <-ctx.Done():
+	for _, video := range videos {
+		if ctx.Err() != nil {
 			return ctx.Err()
-		default:
 		}
 
-		//prod
-		// info, err := u.provider.GetVideoStats(ctx, v.URL)
-		// if err != nil {
-		// 	u.logger.Errorf("updater: get info for video ID%s: URL%v", v.TikTokID, v.URL, err)
-		// 	continue
-		// }
-
-		//test - without provider
-		info := struct{ Views int64 }{
-			Views: v.CurrentViews + 10000,
-		}
-
-		oldViews := v.CurrentViews
-		newViews := info.Views
-
-		if newViews <= oldViews {
-			u.logger.Infof(
-				"updater: no new views for video %s (old=%d, new=%d)",
-				v.TikTokID, oldViews, newViews,
-			)
+		//provider
+		info, err := u.provider.GetVideoStats(ctx, video.URL)
+		if err != nil {
+			u.logger.Errorf("updater: get info for video ID%s: URL%v", video.TikTokID, video.URL, err)
 			continue
 		}
 
-		deltaViews := newViews - oldViews
-
-		earningsDelta := (float64(deltaViews) / float64(u.earningsCfg.Per)) * u.earningsCfg.Rate
-		newTotalEarnings := v.CurrentEarnings + earningsDelta
-
-		statInput := models.CreateVideoStatsInput{
-			VideoID:  v.ID,
-			Views:    newViews,
-			Earnings: newTotalEarnings,
+		//calculate
+		statInput, aggInput, ok := u.prepareVideoUpdate(*video, info)
+		if !ok {
+			continue
 		}
 
 		if err := u.repo.AppendVideoStats(ctx, statInput); err != nil {
-			u.logger.Errorf("updater: create stat for video %d: %v", v.ID, err)
+			u.logger.Errorf("updater: create stat for video %d: %v", video.ID, err)
 			continue
 		}
 
-		updInput := models.UpdateVideoAggregatesInput{
-			VideoID:  v.ID,
-			Views:    newViews,
-			Earnings: newTotalEarnings,
-		}
-
-		if err := u.repo.UpdateVideoAggregates(ctx, updInput); err != nil {
-			u.logger.Errorf("updater: update aggregates for video %d: %v", v.ID, err)
+		if err := u.repo.UpdateVideoAggregates(ctx, aggInput); err != nil {
+			u.logger.Errorf("updater: update aggregates for video %d: %v", video.ID, err)
 			continue
 		}
 	}
 
 	return nil
+}
+func (u *UpdaterService) prepareVideoUpdate(video models.Video, stats *models.VideoStats) (statInput models.CreateVideoStatsInput, aggInput models.UpdateVideoAggregatesInput, ok bool) {
+	oldViews := video.CurrentViews
+	newViews := stats.Views
+
+	if newViews <= oldViews {
+		u.logger.Infof(
+			"updater: no new views for video %s (old=%d, new=%d)",
+			video.TikTokID, oldViews, newViews,
+		)
+		return models.CreateVideoStatsInput{}, models.UpdateVideoAggregatesInput{}, false
+	}
+
+	deltaViews := newViews - oldViews
+	earningsDelta := (float64(deltaViews) / float64(u.earningsCfg.Per)) * u.earningsCfg.Rate
+	newTotalEarnings := video.CurrentEarnings + earningsDelta
+
+	statInput = models.CreateVideoStatsInput{
+		VideoID:  video.ID,
+		Views:    newViews,
+		Earnings: newTotalEarnings,
+	}
+
+	aggInput = models.UpdateVideoAggregatesInput{
+		VideoID:  video.ID,
+		Views:    newViews,
+		Earnings: newTotalEarnings,
+	}
+
+	return statInput, aggInput, true
 }
