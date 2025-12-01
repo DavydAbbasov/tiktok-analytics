@@ -166,9 +166,14 @@ func (a *Application) initProvider() error {
 	return nil
 }
 func (a *Application) initService() error {
+	earnings := service.EarningsConfig{
+		Rate: a.cfg.Earnings.Rate,
+		Per:  a.cfg.Earnings.Per,
+	}
 	a.service = service.NewService(
 		a.repo,
 		a.provider,
+		earnings,
 		a.logger,
 	)
 

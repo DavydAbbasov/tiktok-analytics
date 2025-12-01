@@ -26,14 +26,26 @@ type Logger interface {
 	Infof(format string, args ...any)
 	Info(args ...any)
 }
-
-type Service struct {
-	repo     Repository
-	provider TikTokProvider
-	logger   Logger
+type EarningsConfig struct {
+	Rate float64
+	Per  int64
 }
 
-func NewService(repo Repository, prov TikTokProvider, logger Logger) *Service {
+func (e EarningsConfig) Calc(views int64) float64 {
+	if e.Per == 0 {
+		return 0
+	}
+	return float64(views) / float64(e.Per) * e.Rate
+}
+
+type Service struct {
+	repo        Repository
+	provider    TikTokProvider
+	earningsCfg EarningsConfig
+	logger      Logger
+}
+
+func NewService(repo Repository, prov TikTokProvider, earningsCfg EarningsConfig, logger Logger) *Service {
 	return &Service{
 		repo:     repo,
 		provider: prov,
@@ -118,8 +130,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	}, nil
 }
 func (s *Service) calculateEarnings(views int64) float64 {
-	const c = 0.10
-	return float64(views) / 1000.0 * c
+	return s.earningsCfg.Calc(views)
 }
 
 func (s *Service) GetVideo(ctx context.Context, tikTokID string) (models.TrackVideoResponse, error) {
