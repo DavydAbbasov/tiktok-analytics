@@ -1,6 +1,8 @@
 package tiktokprovider
 
-import "ttanalytic/internal/provider"
+import (
+	"ttanalytic/internal/models"
+)
 
 type EnsemblePostInfoResponse struct {
 	Data []struct {
@@ -11,14 +13,14 @@ type EnsemblePostInfoResponse struct {
 	} `json:"data"`
 }
 
-func (e EnsemblePostInfoResponse) ToProviderStats() *provider.VideoStats {
+func (e EnsemblePostInfoResponse) ToProviderStats() *models.VideoStats {
 	if len(e.Data) == 0 {
-		return &provider.VideoStats{}
+		return &models.VideoStats{}
 	}
 
 	stats := e.Data[0].Statistics
 
-	return &provider.VideoStats{
+	return &models.VideoStats{
 		Views: stats.PlayCount,
 	}
 }

@@ -78,3 +78,6 @@ type UpdateVideoAggregatesInput struct {
 	Views    int64
 	Earnings float64
 }
+type VideoStats struct {
+	Views int64
+}

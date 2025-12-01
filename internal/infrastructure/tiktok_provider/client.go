@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"ttanalytic/internal/provider"
+	"ttanalytic/internal/models"
 )
 
 var (
@@ -63,7 +63,7 @@ func NewClient(http HTTPClient, cfg Config, logger Logger) (*Client, error) {
 }
 
 // provider.Provider
-func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*provider.VideoStats, error) {
+func (c *Client) GetVideoStats(ctx context.Context, videoURL string) (*models.VideoStats, error) {
 	fullURL := c.baseURL
 	fullURL.Path = path.Join(fullURL.Path, "tt/post/info")
 

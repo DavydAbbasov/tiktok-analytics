@@ -12,7 +12,7 @@ import (
 	"ttanalytic/internal/config"
 	pgprovider "ttanalytic/internal/infrastructure"
 	tiktokprovider "ttanalytic/internal/infrastructure/tiktok_provider"
-	"ttanalytic/internal/provider"
+
 	"ttanalytic/internal/repo"
 	"ttanalytic/internal/service"
 
@@ -22,12 +22,12 @@ import (
 type Application struct {
 	cfg      *config.Config
 	logger   *zap.SugaredLogger
-	provider provider.TikTokProvider
 	db       *pgprovider.Provider
-	service  handlers.Service
 	repo     *repo.Repository
-	router   *api.Router
+	service  handlers.Service
 	updater  *service.UpdaterService
+	provider service.TikTokProvider
+	router   *api.Router
 
 	wg sync.WaitGroup
 }

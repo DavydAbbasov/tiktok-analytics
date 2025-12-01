@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 	"ttanalytic/internal/models"
-	"ttanalytic/internal/provider"
 )
 
 const (
@@ -18,6 +17,9 @@ type Repository interface {
 	AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error
 	GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) ([]*models.VideoStatPoint, error)
 }
+type TikTokProvider interface {
+	GetVideoStats(ctx context.Context, videoURL string) (*models.VideoStats, error)
+}
 type Logger interface {
 	Errorf(format string, args ...any)
 	Warnf(format string, args ...any)
@@ -27,11 +29,11 @@ type Logger interface {
 
 type Service struct {
 	repo     Repository
-	provider provider.TikTokProvider
+	provider TikTokProvider
 	logger   Logger
 }
 
-func NewService(repo Repository, prov provider.TikTokProvider, logger Logger) *Service {
+func NewService(repo Repository, prov TikTokProvider, logger Logger) *Service {
 	return &Service{
 		repo:     repo,
 		provider: prov,

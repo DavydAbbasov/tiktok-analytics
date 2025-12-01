@@ -7,7 +7,6 @@ import (
 
 	"ttanalytic/internal/config"
 	"ttanalytic/internal/models"
-	"ttanalytic/internal/provider"
 )
 
 type UpdaterRepository interface {
@@ -23,7 +22,7 @@ type UpdaterConfig struct {
 }
 type UpdaterService struct {
 	repo        UpdaterRepository
-	provider    provider.TikTokProvider
+	provider    TikTokProvider
 	logger      Logger
 	cfg         UpdaterConfig
 	earningsCfg config.EarningsConfig
@@ -31,7 +30,7 @@ type UpdaterService struct {
 
 func NewUpdaterService(
 	repo UpdaterRepository,
-	provider provider.TikTokProvider,
+	provider TikTokProvider,
 	logger Logger,
 	cfg UpdaterConfig,
 	earningsCfg config.EarningsConfig,
