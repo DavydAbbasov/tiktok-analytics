@@ -156,6 +156,8 @@ func (s *Service) GetVideoHistory(ctx context.Context, videoID int64, from, to *
 		HistoryVideo: historyVideo,
 	}, nil
 }
+
+// helpers
 func (s *Service) calculateEarnings(views int64) float64 {
 	return s.earningsCfg.Calc(views)
 }
