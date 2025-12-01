@@ -28,8 +28,7 @@ type Application struct {
 	updater  *service.UpdaterService
 	provider service.TikTokProvider
 	router   *api.Router
-
-	wg sync.WaitGroup
+	wg       sync.WaitGroup
 }
 
 func NewApplication() *Application {
@@ -60,22 +59,13 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("init service: %w", err)
 	}
 
-	if err := a.initUpdater(); err != nil {
+	if err := a.initUpdater(ctx); err != nil {
 		return fmt.Errorf("init updater: %w", err)
 	}
 
 	if err := a.initRouter(); err != nil {
 		return fmt.Errorf("init router: %w", err)
 	}
-
-	go a.updater.Run(ctx)
-	a.logger.Infof("Updater: goroutine started (interval=%s, min_update_age=%s, batch=%d)",
-		a.cfg.Updater.Interval,
-		a.cfg.Updater.MinUpdateAge,
-		a.cfg.Updater.BatchSize,
-	)
-
-	a.startHTTPServer()
 
 	a.logger.Info("Application started successfully")
 
@@ -183,7 +173,7 @@ func (a *Application) initService() error {
 	return nil
 }
 
-func (a *Application) initUpdater() error {
+func (a *Application) initUpdater(ctx context.Context) error {
 	updaterCfg := service.UpdaterConfig{
 		Interval:     time.Duration(a.cfg.Updater.Interval) * time.Second,
 		BatchSize:    a.cfg.Updater.BatchSize,
@@ -197,6 +187,19 @@ func (a *Application) initUpdater() error {
 		updaterCfg,
 		a.cfg.Earnings,
 	)
+
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+		a.updater.Run(ctx)
+	}()
+
+	a.logger.Infof("Updater: goroutine started (interval=%s, min_update_age=%s, batch=%d)",
+		a.cfg.Updater.Interval,
+		a.cfg.Updater.MinUpdateAge,
+		a.cfg.Updater.BatchSize,
+	)
+
 	return nil
 }
 func (a *Application) initRouter() error {
@@ -204,8 +207,10 @@ func (a *Application) initRouter() error {
 		a.service,
 		a.logger,
 	)
-
 	a.router = api.NewRouter(a.cfg, h)
+
+	a.startHTTPServer()
+
 	return nil
 }
 
@@ -220,4 +225,5 @@ func (a *Application) startHTTPServer() {
 			a.logger.Infof("HTTP server error: %w", err)
 		}
 	}()
+
 }
