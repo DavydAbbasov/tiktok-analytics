@@ -33,7 +33,7 @@ func NewProvider(
 	lifetime int,
 ) *Provider {
 	cs := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		"postgres://%s:%s@%s:%d/%s",
 		username, password, server, port, database,
 	)
 
