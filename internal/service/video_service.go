@@ -129,34 +129,6 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 	return s.buildTrackVideoResponse(createdVideo), nil
 }
 
-func (s *Service) calculateEarnings(views int64) float64 {
-	return s.earningsCfg.Calc(views)
-}
-
-func (s *Service) calculateInitialVideoState(stats *models.VideoStats) initialVideoState {
-	views := stats.Views
-	earnings := s.calculateEarnings(views)
-
-	return initialVideoState{
-		Views:    views,
-		Earnings: earnings,
-	}
-}
-
-func (s *Service) buildTrackVideoResponse(v *models.Video) models.TrackVideoResponse {
-	return models.TrackVideoResponse{
-		VideoID:         v.ID,
-		TikTokID:        v.TikTokID,
-		URL:             v.URL,
-		CurrentViews:    v.CurrentViews,
-		CurrentEarnings: v.CurrentEarnings,
-		Currency:        CurrencyUSD,
-		LastUpdatedAt:   v.UpdatedAt.UTC().Format(time.RFC3339),
-		CreatedAt:       v.CreatedAt.UTC().Format(time.RFC3339),
-		Status:          "active",
-	}
-}
-
 func (s *Service) GetVideo(ctx context.Context, tikTokID string) (models.TrackVideoResponse, error) {
 	video, err := s.repo.FindVideoByTikTokID(ctx, tikTokID)
 	if err != nil {
@@ -164,17 +136,8 @@ func (s *Service) GetVideo(ctx context.Context, tikTokID string) (models.TrackVi
 		return models.TrackVideoResponse{}, err
 	}
 
-	return models.TrackVideoResponse{
-		VideoID:         video.ID,
-		TikTokID:        video.TikTokID,
-		URL:             video.URL,
-		CurrentViews:    video.CurrentViews,
-		CurrentEarnings: video.CurrentEarnings,
-		Currency:        CurrencyUSD,
-		LastUpdatedAt:   video.UpdatedAt.UTC().Format(time.RFC3339),
-		CreatedAt:       video.CreatedAt.UTC().Format(time.RFC3339),
-		Status:          "active",
-	}, nil
+	//build response
+	return s.buildTrackVideoResponse(video), nil
 }
 func (s *Service) GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) (models.VideoHistoryResponse, error) {
 	points, err := s.repo.GetVideoHistory(ctx, videoID, from, to)
@@ -192,4 +155,31 @@ func (s *Service) GetVideoHistory(ctx context.Context, videoID int64, from, to *
 		VideoID:      videoID,
 		HistoryVideo: historyVideo,
 	}, nil
+}
+func (s *Service) calculateEarnings(views int64) float64 {
+	return s.earningsCfg.Calc(views)
+}
+
+func (s *Service) calculateInitialVideoState(stats *models.VideoStats) initialVideoState {
+	views := stats.Views
+	earnings := s.calculateEarnings(views)
+
+	return initialVideoState{
+		Views:    views,
+		Earnings: earnings,
+	}
+}
+
+func (s *Service) buildTrackVideoResponse(video *models.Video) models.TrackVideoResponse {
+	return models.TrackVideoResponse{
+		VideoID:         video.ID,
+		TikTokID:        video.TikTokID,
+		URL:             video.URL,
+		CurrentViews:    video.CurrentViews,
+		CurrentEarnings: video.CurrentEarnings,
+		Currency:        CurrencyUSD,
+		LastUpdatedAt:   video.UpdatedAt.UTC().Format(time.RFC3339),
+		CreatedAt:       video.CreatedAt.UTC().Format(time.RFC3339),
+		Status:          "active",
+	}
 }
