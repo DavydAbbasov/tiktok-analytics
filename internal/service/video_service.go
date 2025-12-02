@@ -16,6 +16,8 @@ type Repository interface {
 	CreateVideo(ctx context.Context, input models.CreateVideoInput) (*models.Video, error)
 	AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error
 	GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) ([]*models.VideoStatPoint, error)
+	SetVideoErrorStatus(ctx context.Context, videoID int64, errText string) error
+	SetVideoStoppedStatus(ctx context.Context, videoID int64) error
 }
 type TikTokProvider interface {
 	GetVideoStats(ctx context.Context, videoURL string) (*models.VideoStats, error)
@@ -98,6 +100,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 			URL:             req.URL,
 			CurrentViews:    initState.Views,
 			CurrentEarnings: initState.Earnings,
+			TrackingStatus:  models.VideoStatusActive,
 		}
 
 		video, err := s.repo.CreateVideo(txCtx, input)
@@ -156,6 +159,14 @@ func (s *Service) GetVideoHistory(ctx context.Context, videoID int64, from, to *
 		HistoryVideo: historyVideo,
 	}, nil
 }
+func (s *Service) StopTracking(ctx context.Context, videoID int64) error {
+	if err := s.repo.SetVideoStoppedStatus(ctx, videoID); err != nil {
+		s.logger.Errorf("StopTracking: SetVideoStoppedStatus(%d) error: %v", videoID, err)
+		return err
+	}
+
+	return nil
+}
 
 // helpers
 func (s *Service) calculateEarnings(views int64) float64 {
@@ -182,6 +193,6 @@ func (s *Service) buildTrackVideoResponse(video *models.Video) models.TrackVideo
 		Currency:        CurrencyUSD,
 		LastUpdatedAt:   video.UpdatedAt.UTC().Format(time.RFC3339),
 		CreatedAt:       video.CreatedAt.UTC().Format(time.RFC3339),
-		Status:          "active",
+		Status:          video.TrackingStatus,
 	}
 }

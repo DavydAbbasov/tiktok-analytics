@@ -17,6 +17,7 @@ type Service interface {
 	TrackVideo(ctx context.Context, req models.TrackVideoRequest) (models.TrackVideoResponse, error)
 	GetVideo(ctx context.Context, tiktok string) (models.TrackVideoResponse, error)
 	GetVideoHistory(ctx context.Context, videoID int64, from, to *time.Time) (models.VideoHistoryResponse, error)
+	StopTracking(ctx context.Context, videoID int64) error
 }
 type Logger interface {
 	Errorf(format string, args ...any)
@@ -165,6 +166,38 @@ func (h *Handler) GetVideoHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.sendJSON(w, http.StatusOK, resp)
+}
+
+// StopVideoTracking
+// @Summary      Stop tracking for a video
+// @Description  Sets tracking status to "stopped" so updater no longer updates this video.
+// @Tags         videos
+// @Param        video_id  path  string  true  "video ID"
+// @Success      204
+// @Failure      400  {object}  ErrorResponse "Invalid video_id"
+// @Failure      404  {object}  ErrorResponse "Video not found"
+// @Failure      500  {object}  ErrorResponse "Internal server error"
+// @Router       /api/videos/{video_id}/stop [post]
+func (h *Handler) StopVideoTracking(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "video_id")
+	if idStr == "" {
+		h.sendError(w, http.StatusBadRequest, "missing video_id", nil)
+		return
+	}
+
+	videoID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "invalid video_id", err)
+		return
+	}
+
+	if err := h.service.StopTracking(r.Context(), videoID); err != nil {
+		h.logger.Errorf("StopVideoTracking: service error: %v", err)
+		h.handleServiceError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // helpers

@@ -13,6 +13,7 @@ type UpdaterRepository interface {
 	ListVideosForUpdate(ctx context.Context, minupdateage time.Duration, limit int) ([]*models.Video, error)
 	AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error
 	UpdateVideoAggregates(ctx context.Context, input models.UpdateVideoAggregatesInput) error
+	SetVideoErrorStatus(ctx context.Context, videoID int64, errText string) error
 }
 
 type UpdaterConfig struct {
@@ -81,10 +82,14 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 		//provider
 		info, err := u.provider.GetVideoStats(ctx, video.URL)
 		if err != nil {
-			u.logger.Errorf("updater: get info for video ID%s: URL%v", video.TikTokID, video.URL, err)
+			u.logger.Errorf("updater: get info for video ID=%s URL=%s: %v", video.TikTokID, video.URL, err)
+
+			if setErr := u.repo.SetVideoErrorStatus(ctx, video.ID, err.Error()); setErr != nil {
+				u.logger.Errorf("updater: failed to set error status for video %d: %v", video.ID, setErr)
+			}
+
 			continue
 		}
-
 		//calculate
 		statInput, aggInput, ok := u.prepareVideoUpdate(*video, info)
 		if !ok {

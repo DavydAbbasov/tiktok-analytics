@@ -38,9 +38,6 @@ definitions:
       tiktok_id:
         example: "1234567890"
         type: string
-      title:
-        example: My viral video
-        type: string
       url:
         example: https://www.tiktok.com/@user/video/1234567890
         type: string
@@ -192,6 +189,34 @@ paths:
           schema:
             $ref: '#/definitions/handlers.ErrorResponse'
       summary: Get historical stats for a TikTok video
+      tags:
+      - videos
+  /api/videos/{video_id}/stop:
+    post:
+      description: Sets tracking status to "stopped" so updater no longer updates
+        this video.
+      parameters:
+      - description: video ID
+        in: path
+        name: video_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid video_id
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Video not found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Stop tracking for a video
       tags:
       - videos
 swagger: "2.0"

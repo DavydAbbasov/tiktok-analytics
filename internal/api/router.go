@@ -18,6 +18,7 @@ type Handler interface {
 	TrackVideo(w http.ResponseWriter, r *http.Request)
 	GetVideo(w http.ResponseWriter, r *http.Request)
 	GetVideoHistory(w http.ResponseWriter, r *http.Request)
+	StopVideoTracking(w http.ResponseWriter, r *http.Request)
 }
 
 // Router handles HTTP routing
@@ -51,8 +52,10 @@ func NewRouter(cfg *config.Config, handler Handler) *Router {
 	r.Route("/api", func(r chi.Router) {
 		//create or get video
 		r.Post("/videos", handler.TrackVideo)
+		r.Post("/videos/{video_id}/stop", handler.StopVideoTracking)
 		r.Get("/videos/{tiktok_id}", handler.GetVideo)
 		r.Get("/videos/{video_id}/history", handler.GetVideoHistory)
+
 	})
 
 	//server

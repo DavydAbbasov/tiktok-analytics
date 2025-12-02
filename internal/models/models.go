@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+const (
+	VideoStatusActive  = "active"
+	VideoStatusStopped = "stopped"
+	VideoStatusError   = "error"
+)
+
 // REQUEST DTO
 // comes from a client
 type TrackVideoRequest struct {
@@ -26,7 +32,6 @@ type TrackVideoResponse struct {
 	VideoID         int64   `json:"video_id"        example:"1"`
 	TikTokID        string  `json:"tiktok_id"       example:"1234567890"`
 	URL             string  `json:"url"             example:"https://www.tiktok.com/@user/video/1234567890"`
-	Title           string  `json:"title"           example:"My viral video"`
 	CurrentViews    int64   `json:"current_views"   example:"15000"`
 	CurrentEarnings float64 `json:"current_earnings" example:"1.5"`
 	Currency        string  `json:"currency"        example:"USD"`
@@ -44,6 +49,10 @@ type Video struct {
 	CurrentEarnings float64
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+
+	TrackingStatus string // "active", "stopped", "error"
+	LastError      *string
+	LastErrorAt    *time.Time
 }
 
 // biuld history video
@@ -65,6 +74,7 @@ type CreateVideoInput struct {
 	URL             string
 	CurrentViews    int64
 	CurrentEarnings float64
+	TrackingStatus  string
 }
 
 // internal input for stats journal

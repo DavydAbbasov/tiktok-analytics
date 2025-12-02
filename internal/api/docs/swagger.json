@@ -175,6 +175,47 @@
                     }
                 }
             }
+        },
+        "/api/videos/{video_id}/stop": {
+            "post": {
+                "description": "Sets tracking status to \"stopped\" so updater no longer updates this video.",
+                "tags": [
+                    "videos"
+                ],
+                "summary": "Stop tracking for a video",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "video ID",
+                        "name": "video_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Invalid video_id",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Video not found",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -232,10 +273,6 @@
                 "tiktok_id": {
                     "type": "string",
                     "example": "1234567890"
-                },
-                "title": {
-                    "type": "string",
-                    "example": "My viral video"
                 },
                 "url": {
                     "type": "string",
