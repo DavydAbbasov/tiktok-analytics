@@ -1,4 +1,4 @@
-.PHONY: build up down logs migrate ps tidy restart swagger stop-app db
+.PHONY: build up down logs migrate ps tidy restart swagger stop-app db run
 
 build:
 	docker compose build
@@ -29,9 +29,15 @@ stop-app:
 
 db:
 	docker compose up -d postgres
-restart:
+
+
+run:
 	$(MAKE) swagger
-	$(MAKE) down
 	$(MAKE) build
 	$(MAKE) up
+	$(MAKE) migrate
 	$(MAKE) logs
+
+restart:
+	$(MAKE) down
+	$(MAKE) run
