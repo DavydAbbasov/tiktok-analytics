@@ -64,57 +64,57 @@ func (u *UpdaterService) Run(ctx context.Context) {
 	}
 }
 func (u *UpdaterService) processBatch(ctx context.Context) error {
-	videos, err := u.repo.ListVideosForUpdate(ctx, u.cfg.MinUpdateAge, u.cfg.BatchSize)
-	if err != nil {
-		return fmt.Errorf("list videos for update: %w", err)
-	}
-
-	if len(videos) == 0 {
-		u.logger.Info("updater: no videos to update")
-		return nil
-	}
-
-	for _, video := range videos {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-
-		//provider
-		info, err := u.provider.GetVideoStats(ctx, video.URL)
+	for {
+		videos, err := u.repo.ListVideosForUpdate(ctx, u.cfg.MinUpdateAge, u.cfg.BatchSize)
 		if err != nil {
-			u.logger.Errorf("updater: get info for video ID=%s URL=%s: %v", video.TikTokID, video.URL, err)
-
-			if setErr := u.repo.SetVideoErrorStatus(ctx, video.ID, err.Error()); setErr != nil {
-				u.logger.Errorf("updater: failed to set error status for video %d: %v", video.ID, setErr)
-			}
-
-			continue
-		}
-		//calculate
-		statInput, aggInput, ok := u.prepareVideoUpdate(*video, info)
-		if !ok {
-			continue
+			return fmt.Errorf("list videos for update: %w", err)
 		}
 
-		err = u.transactor.WithinTransaction(ctx, func(txCtx context.Context) error {
-			if err := u.repo.AppendVideoStats(txCtx, statInput); err != nil {
-				u.logger.Errorf("updater: create stat for video %d: %v", video.ID, err)
-				return err
+		if len(videos) == 0 {
+			u.logger.Info("updater: no videos to update")
+			break
+		}
+
+		for _, video := range videos {
+			if ctx.Err() != nil {
+				return ctx.Err()
 			}
 
-			if err := u.repo.UpdateVideoAggregates(txCtx, aggInput); err != nil {
-				u.logger.Errorf("updater: update aggregates for video %d: %v", video.ID, err)
-				return err
+			//provider
+			info, err := u.provider.GetVideoStats(ctx, video.URL)
+			if err != nil {
+				u.logger.Errorf("updater: get info for video ID=%s URL=%s: %v", video.TikTokID, video.URL, err)
+
+				if setErr := u.repo.SetVideoErrorStatus(ctx, video.ID, err.Error()); setErr != nil {
+					u.logger.Errorf("updater: failed to set error status for video %d: %v", video.ID, setErr)
+				}
+				continue
+			}
+			//calculate
+			statInput, aggInput, ok := u.prepareVideoUpdate(*video, info)
+			if !ok {
+				continue
 			}
 
-			return nil
-		})
-		if err != nil {
-			u.logger.Errorf("updater: transaction failed for video %d: %v", video.ID, err)
-			continue
+			err = u.transactor.WithinTransaction(ctx, func(txCtx context.Context) error {
+				if err := u.repo.AppendVideoStats(txCtx, statInput); err != nil {
+					u.logger.Errorf("updater: create stat for video %d: %v", video.ID, err)
+					return err
+				}
+
+				if err := u.repo.UpdateVideoAggregates(txCtx, aggInput); err != nil {
+					u.logger.Errorf("updater: update aggregates for video %d: %v", video.ID, err)
+					return err
+				}
+
+				return nil
+			})
+			if err != nil {
+				u.logger.Errorf("updater: transaction failed for video %d: %v", video.ID, err)
+				continue
+			}
 		}
 	}
-
 	return nil
 }
 func (u *UpdaterService) prepareVideoUpdate(video models.Video, stats *models.VideoStats) (statInput models.CreateVideoStatsInput, aggInput models.UpdateVideoAggregatesInput, ok bool) {
