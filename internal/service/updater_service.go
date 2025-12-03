@@ -119,19 +119,16 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 				//transaction
 				if txErr := u.transactor.WithinTransaction(ctx, func(txCtx context.Context) error {
 					if err := u.repo.AppendVideoStats(txCtx, statInput); err != nil {
-						u.logger.Errorf("updater: create stat for video %d: %v", video.ID, err)
-						return err
+						return fmt.Errorf("append video stats for video %d: %w", video.ID, err)
 					}
 
 					if err := u.repo.UpdateVideoAggregates(txCtx, aggInput); err != nil {
-						u.logger.Errorf("updater: update aggregates for video %d: %v", video.ID, err)
-						return err
+						return fmt.Errorf("update aggregates for video %d: %w", video.ID, err)
 					}
 
 					return nil
 				}); txErr != nil {
-					u.logger.Errorf("updater: transaction failed for video %d: %v", video.ID, err)
-					return
+					u.logger.Errorf("updater: transaction failed: %v", txErr)
 				}
 
 			}(video)
