@@ -68,11 +68,9 @@ func NewService(repo Repository, prov TikTokProvider, earningsCfg EarningsConfig
 func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) (models.TrackVideoResponse, error) {
 	//try to find existing video
 	video, err := s.repo.FindVideoByTikTokID(ctx, req.TikTokID)
-	if err != nil {
-		if !errors.Is(err, models.ErrNotFound) {
-			s.logger.Errorf("TrackVideo: FindVideoByTikTokID(%s) error: %v", req.TikTokID, err)
-			return models.TrackVideoResponse{}, err
-		}
+	if err != nil && !errors.Is(err, models.ErrNotFound) {
+		s.logger.Errorf("TrackVideo: FindVideoByTikTokID(%s) error: %v", req.TikTokID, err)
+		return models.TrackVideoResponse{}, err
 	}
 
 	//video already exists
