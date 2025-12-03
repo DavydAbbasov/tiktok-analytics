@@ -49,9 +49,10 @@ type EarningsConfig struct {
 	Per  int64   `yaml:"per"`
 }
 type UpdaterConfig struct {
-	Interval     int `yaml:"interval"`
-	BatchSize    int `yaml:"batch_size"`
-	MinUpdateAge int `yaml:"min_update_age"`
+	Interval       int `yaml:"interval"`
+	BatchSize      int `yaml:"batch_size"`
+	MinUpdateAge   int `yaml:"min_update_age"`
+	MaxConcurrency int `max_concurrency"`
 }
 
 const (

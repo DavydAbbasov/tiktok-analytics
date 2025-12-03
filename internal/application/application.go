@@ -194,9 +194,10 @@ func (a *Application) initService() error {
 
 func (a *Application) initUpdater(ctx context.Context) error {
 	updaterCfg := service.UpdaterConfig{
-		Interval:     time.Duration(a.cfg.Updater.Interval) * time.Second,
-		BatchSize:    a.cfg.Updater.BatchSize,
-		MinUpdateAge: time.Duration(a.cfg.Updater.MinUpdateAge) * time.Second,
+		Interval:       time.Duration(a.cfg.Updater.Interval) * time.Second,
+		BatchSize:      a.cfg.Updater.BatchSize,
+		MinUpdateAge:   time.Duration(a.cfg.Updater.MinUpdateAge) * time.Second,
+		MaxConcurrency: a.cfg.Updater.MaxConcurrency,
 	}
 
 	a.updater = service.NewUpdaterService(
