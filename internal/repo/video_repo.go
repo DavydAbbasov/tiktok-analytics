@@ -168,7 +168,7 @@ func (r *Repository) AppendVideoStats(ctx context.Context, input models.CreateVi
 
 	return nil
 }
-func (r *Repository) ListVideosForUpdate(ctx context.Context, minupdateage time.Duration, limit int) ([]*models.Video, error) {
+func (r *Repository) ListVideosForUpdate(ctx context.Context, minupdateage time.Duration, limit int) ([]models.Video, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(r.timeoutSec)*time.Second)
 	defer cancel()
 
@@ -200,7 +200,7 @@ func (r *Repository) ListVideosForUpdate(ctx context.Context, minupdateage time.
 	}
 	defer rows.Close()
 
-	var result []*models.Video
+	result := make([]models.Video, 0, limit)
 
 	for rows.Next() {
 		var v models.Video
@@ -218,7 +218,7 @@ func (r *Repository) ListVideosForUpdate(ctx context.Context, minupdateage time.
 		); err != nil {
 			return nil, err
 		}
-		result = append(result, &v)
+		result = append(result, v)
 	}
 
 	if err := rows.Err(); err != nil {

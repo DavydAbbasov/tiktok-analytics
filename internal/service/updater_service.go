@@ -10,7 +10,7 @@ import (
 )
 
 type UpdaterRepository interface {
-	ListVideosForUpdate(ctx context.Context, minupdateage time.Duration, limit int) ([]*models.Video, error)
+	ListVideosForUpdate(ctx context.Context, minupdateage time.Duration, limit int) ([]models.Video, error)
 	AppendVideoStats(ctx context.Context, input models.CreateVideoStatsInput) error
 	UpdateVideoAggregates(ctx context.Context, input models.UpdateVideoAggregatesInput) error
 	SetVideoErrorStatus(ctx context.Context, videoID int64, errText string) error
@@ -91,7 +91,7 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 				continue
 			}
 			//calculate
-			statInput, aggInput, ok := u.prepareVideoUpdate(*video, info)
+			statInput, aggInput, ok := u.prepareVideoUpdate(video, info)
 			if !ok {
 				continue
 			}
