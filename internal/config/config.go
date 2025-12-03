@@ -52,7 +52,7 @@ type UpdaterConfig struct {
 	Interval       int `yaml:"interval"`
 	BatchSize      int `yaml:"batch_size"`
 	MinUpdateAge   int `yaml:"min_update_age"`
-	MaxConcurrency int `max_concurrency"`
+	MaxConcurrency int `yaml:"max_concurrency"`
 }
 
 const (
