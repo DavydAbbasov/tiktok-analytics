@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 	"ttanalytic/internal/models"
 )
@@ -103,8 +104,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 
 		video, err := s.repo.CreateVideo(txCtx, input)
 		if err != nil {
-			s.logger.Errorf("TrackVideo: CreateVideo(%s) error: %v", req.TikTokID, err)
-			return err
+			return fmt.Errorf("create video %s: %w", req.TikTokID, err)
 		}
 
 		createdVideo = video
@@ -117,8 +117,7 @@ func (s *Service) TrackVideo(ctx context.Context, req models.TrackVideoRequest) 
 		}
 
 		if err := s.repo.AppendVideoStats(txCtx, statInput); err != nil {
-			s.logger.Errorf("Service: TrackVideo failed to append stats for video_id=%d: %v", video.ID, err)
-			return err
+			return fmt.Errorf("append stats for video_id=%d: %w", video.ID, err)
 		}
 		return nil
 	})
