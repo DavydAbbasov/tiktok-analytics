@@ -34,7 +34,7 @@ func main() {
 		cfg.SQLDataBase.Database,
 	)
 
-	m, err := migrate.New("file://internal/migrations", dsn)
+	m, err := migrate.New("file://migrations", dsn)
 	if err != nil {
 		log.Fatalf("migrate new: %v", err)
 	}

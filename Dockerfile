@@ -12,6 +12,6 @@ WORKDIR /app
 
 COPY --from=builder /app/bin ./bin
 COPY internal/config/config.yaml ./internal/config/config.yaml
-COPY internal/migrations ./internal/migrations
+COPY migrations ./migrations
 
 
