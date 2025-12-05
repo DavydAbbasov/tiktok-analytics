@@ -1,3 +1,5 @@
+//go:generate mockgen -destination=../mocks/updater_mocks.go -package=mocks ttanalytic/internal/service UpdaterRepository,TikTokProvider,Logger,Transactor
+
 package service
 
 import (
@@ -6,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"ttanalytic/internal/config"
 	"ttanalytic/internal/models"
 )
 
@@ -23,12 +24,13 @@ type UpdaterConfig struct {
 	MinUpdateAge   time.Duration
 	MaxConcurrency int
 }
+
 type UpdaterService struct {
 	repo        UpdaterRepository
 	provider    TikTokProvider
 	logger      Logger
 	cfg         UpdaterConfig
-	earningsCfg config.EarningsConfig
+	earningsCfg EarningsConfig
 	transactor  Transactor
 }
 
@@ -37,7 +39,7 @@ func NewUpdaterService(
 	provider TikTokProvider,
 	logger Logger,
 	cfg UpdaterConfig,
-	earningsCfg config.EarningsConfig,
+	earningsCfg EarningsConfig,
 	transactor Transactor,
 ) *UpdaterService {
 	return &UpdaterService{
