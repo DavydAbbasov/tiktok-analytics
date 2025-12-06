@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 	"ttanalytic/internal/mocks"
@@ -151,7 +152,7 @@ func TestUpdaterService_processBatch_MultipleBatches(t *testing.T) {
 	u := NewUpdaterService(repo, provider, logger, cfg, earningsCfg, transactor)
 	ctx := context.Background()
 
-	//create 20 video in db
+	//create 21 video in db
 	var allVideos []models.Video
 	for i := 1; i <= 21; i++ {
 		allVideos = append(allVideos, models.Video{
@@ -165,7 +166,7 @@ func TestUpdaterService_processBatch_MultipleBatches(t *testing.T) {
 
 	firstBatch := allVideos[:10]    // 0..9  -> 1..10
 	secondBatch := allVideos[10:20] // 10..19 -> 11..20
-	lastBatch := allVideos[20:]
+	lastBatch := allVideos[20:]     // > 20
 
 	//Expectations
 	gomock.InOrder(
@@ -190,7 +191,6 @@ func TestUpdaterService_processBatch_MultipleBatches(t *testing.T) {
 		provider.EXPECT().
 			GetVideoStats(gomock.Any(), v.URL).
 			Return(stats, nil)
-		// AnyTimes() //bloc concurency
 	}
 
 	//work with relationships
@@ -218,5 +218,122 @@ func TestUpdaterService_processBatch_MultipleBatches(t *testing.T) {
 	err := u.processBatch(ctx)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+}
+func TestUpdaterService_processBatch_RespectsMaxConcurrency(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := mocks.NewMockUpdaterRepository(ctrl)
+	provider := mocks.NewMockTikTokProvider(ctrl)
+	logger := mocks.NewMockLogger(ctrl)
+	transactor := mocks.NewMockTransactor(ctrl)
+
+	logger.EXPECT().Info(gomock.Any()).AnyTimes()
+	logger.EXPECT().Infof(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Errorf(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Warnf(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := UpdaterConfig{
+		Interval:       time.Second,
+		BatchSize:      5,
+		MinUpdateAge:   0,
+		MaxConcurrency: 2,
+	}
+	earningsCfg := EarningsConfig{
+		Per:  1000,
+		Rate: 0.10,
+	}
+
+	u := NewUpdaterService(repo, provider, logger, cfg, earningsCfg, transactor)
+
+	ctx := context.Background()
+
+	var videos []models.Video
+	for i := 1; i <= 5; i++ {
+		videos = append(videos, models.Video{
+			ID:              int64(i),
+			URL:             fmt.Sprintf("url-%d", i),
+			TikTokID:        fmt.Sprintf("t%d", i),
+			CurrentViews:    0,
+			CurrentEarnings: 0,
+		})
+	}
+
+	gomock.InOrder(
+		repo.EXPECT().
+			ListVideosForUpdate(gomock.Any(), cfg.MinUpdateAge, cfg.BatchSize).
+			Return(videos, nil), //5
+		repo.EXPECT().
+			ListVideosForUpdate(gomock.Any(), cfg.MinUpdateAge, cfg.BatchSize).
+			Return([]models.Video{}, nil), //empty
+	)
+
+	//counter active go's who are working with provider
+	var active int32
+	var maxObserved int32
+
+	provider.EXPECT().
+		GetVideoStats(gomock.Any(), gomock.Any()).
+		Times(len(videos)).
+		DoAndReturn(func(_ context.Context, url string) (*models.VideoStats, error) {
+			// counter++
+			cur := atomic.AddInt32(&active, 1)
+
+			for {
+				oldMax := atomic.LoadInt32(&maxObserved)
+				if cur <= oldMax {
+					break
+				}
+				if atomic.CompareAndSwapInt32(&maxObserved, oldMax, cur) {
+					break
+				}
+			}
+
+			if cur > int32(cfg.MaxConcurrency) {
+				t.Errorf("concurrency limit exceeded: active=%d, max=%d", cur, cfg.MaxConcurrency)
+			}
+
+			// imitation long work with provider
+			time.Sleep(50 * time.Millisecond)
+
+			// counter--
+			atomic.AddInt32(&active, -1)
+
+			return &models.VideoStats{
+				Views: 100,
+			}, nil
+		})
+
+	repo.EXPECT().
+		AppendVideoStats(gomock.Any(), gomock.Any()).
+		Times(len(videos)).
+		Return(nil)
+
+	repo.EXPECT().
+		UpdateVideoAggregates(gomock.Any(), gomock.Any()).
+		Times(len(videos)).
+		Return(nil)
+
+	transactor.EXPECT().
+		WithinTransaction(gomock.Any(), gomock.Any()).
+		Times(len(videos)).
+		DoAndReturn(func(_ context.Context, fn func(context.Context) error) error {
+			return fn(context.Background())
+		})
+
+	//run
+	err := u.processBatch(ctx)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if v := atomic.LoadInt32(&active); v != 0 {
+		t.Fatalf("expected active=0, got %d", v)
+	}
+
+	//max concurrency
+	if max := atomic.LoadInt32(&maxObserved); max > int32(cfg.MaxConcurrency) {
+		t.Fatalf("max observed concurrency=%d > MaxConcurrency=%d", max, cfg.MaxConcurrency)
 	}
 }
