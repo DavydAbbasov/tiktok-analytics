@@ -84,7 +84,6 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 
 		for _, v := range videos {
 			if ctx.Err() != nil {
-				//
 				wp.Stop()
 				return ctx.Err()
 			}
