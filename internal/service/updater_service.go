@@ -5,10 +5,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
-
 	"ttanalytic/internal/models"
+
+	"github.com/gammazero/workerpool"
 )
 
 type UpdaterRepository interface {
@@ -80,23 +80,17 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 			break
 		}
 
-		sem := make(chan struct{}, u.cfg.MaxConcurrency)
-		var wg sync.WaitGroup
+		wp := workerpool.New(u.cfg.MaxConcurrency)
 
 		for _, v := range videos {
 			if ctx.Err() != nil {
+				//
+				wp.Stop()
 				return ctx.Err()
 			}
 
-			sem <- struct{}{}
-			wg.Add(1)
-
 			video := v
-
-			go func(video models.Video) {
-				defer wg.Done()
-				defer func() { <-sem }()
-
+			wp.Submit(func() {
 				if ctx.Err() != nil {
 					return
 				}
@@ -133,10 +127,9 @@ func (u *UpdaterService) processBatch(ctx context.Context) error {
 					u.logger.Errorf("updater: transaction failed: %v", txErr)
 				}
 
-			}(video)
+			})
 		}
-
-		wg.Wait()
+		wp.StopWait()
 
 		if ctx.Err() != nil {
 			return ctx.Err()
