@@ -199,15 +199,19 @@ func (a *Application) initUpdater(ctx context.Context) error {
 		MinUpdateAge:   time.Duration(a.cfg.Updater.MinUpdateAge) * time.Second,
 		MaxConcurrency: a.cfg.Updater.MaxConcurrency,
 	}
-
+	earnings := service.EarningsConfig{
+		Rate: a.cfg.Earnings.Rate,
+		Per:  a.cfg.Earnings.Per,
+	}
 	a.updater = service.NewUpdaterService(
 		a.repo,
 		a.provider,
 		a.logger,
 		updaterCfg,
-		a.cfg.Earnings,
+		earnings,
 		a.transactor,
 	)
+
 
 	a.wg.Add(1)
 	go func() {
